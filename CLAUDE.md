@@ -2,11 +2,29 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Requirements
+
+- Go 1.24.0+
+- PostgreSQL 14+
+- Redis 6+
+
+## Environment Setup
+
+```bash
+cp .env.example .env    # 复制环境变量模板
+# 编辑 .env 配置数据库和 Redis 连接信息
+```
+
+环境变量优先级高于 `configs/config.yaml`（Viper AutomaticEnv）
+
 ## Build & Development Commands
 
 ```bash
 # Build
 make build              # 构建到 bin/peanut
+
+# Dependencies
+make tidy               # 整理 go.mod 依赖
 
 # Run
 make run                # 直接运行
@@ -26,6 +44,8 @@ make migrate-down       # 回滚迁移
 
 # Docker
 docker-compose up -d    # 启动 PostgreSQL + Redis + App
+make docker-build       # 构建 Docker 镜像
+make docker-run         # 运行 Docker 容器
 ```
 
 ## Architecture Overview
@@ -43,6 +63,19 @@ internal/model/             # 数据模型，含 GORM tag 和请求/响应 DTO
 ```
 
 **依赖流向**：Handler → Service → Repository → Model（单向）
+
+**API 路由结构**：
+- `GET /health` - 健康检查
+- `GET /api/v1/users` - 用户列表
+- `POST /api/v1/users` - 创建用户
+- `GET /api/v1/users/:id` - 获取用户
+- `PUT /api/v1/users/:id` - 更新用户
+- `DELETE /api/v1/users/:id` - 删除用户
+
+**internal/pkg/ 目录**：
+- `database/` - PostgreSQL 连接封装
+- `cache/` - Redis 连接封装
+- `response/` - 统一响应工具
 
 **关键技术栈**：
 - Web 框架：Gin

@@ -1,0 +1,301 @@
+basePath: /api/v1
+definitions:
+  github_com_solariswu_peanut_internal_model.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      password:
+        maxLength: 64
+        minLength: 6
+        type: string
+      username:
+        maxLength: 32
+        minLength: 3
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  github_com_solariswu_peanut_internal_model.UpdateUserRequest:
+    properties:
+      email:
+        type: string
+      status:
+        enum:
+        - 0
+        - 1
+        - 2
+        type: integer
+      username:
+        maxLength: 32
+        minLength: 3
+        type: string
+    type: object
+  github_com_solariswu_peanut_internal_model.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      status:
+        type: integer
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+  github_com_solariswu_peanut_internal_pkg_response.PageData:
+    properties:
+      list: {}
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
+    type: object
+  github_com_solariswu_peanut_internal_pkg_response.Response:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@peanut.local
+    name: API Support
+  description: Go + Gin + PostgreSQL + Redis 脚手架 API
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Peanut API
+  version: "1.0"
+paths:
+  /api/v1/users:
+    get:
+      description: 获取用户列表（分页）
+      parameters:
+      - description: 用户名
+        in: query
+        name: username
+        type: string
+      - description: 邮箱
+        in: query
+        name: email
+        type: string
+      - description: 状态
+        in: query
+        name: status
+        type: integer
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_solariswu_peanut_internal_pkg_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_solariswu_peanut_internal_pkg_response.PageData'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_solariswu_peanut_internal_pkg_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_solariswu_peanut_internal_pkg_response.Response'
+      summary: 用户列表
+      tags:
+      - 用户
+    post:
+      consumes:
+      - application/json
+      description: 创建新用户
+      parameters:
+      - description: 创建用户请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_solariswu_peanut_internal_model.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_solariswu_peanut_internal_pkg_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_solariswu_peanut_internal_model.User'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_solariswu_peanut_internal_pkg_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_solariswu_peanut_internal_pkg_response.Response'
+      summary: 创建用户
+      tags:
+      - 用户
+  /api/v1/users/{id}:
+    delete:
+      description: 删除用户
+      parameters:
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_solariswu_peanut_internal_pkg_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_solariswu_peanut_internal_pkg_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_solariswu_peanut_internal_pkg_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_solariswu_peanut_internal_pkg_response.Response'
+      summary: 删除用户
+      tags:
+      - 用户
+    get:
+      description: 根据ID获取用户信息
+      parameters:
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_solariswu_peanut_internal_pkg_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_solariswu_peanut_internal_model.User'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_solariswu_peanut_internal_pkg_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_solariswu_peanut_internal_pkg_response.Response'
+      summary: 获取用户
+      tags:
+      - 用户
+    put:
+      consumes:
+      - application/json
+      description: 更新用户信息
+      parameters:
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 更新用户请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_solariswu_peanut_internal_model.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_solariswu_peanut_internal_pkg_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_solariswu_peanut_internal_model.User'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_solariswu_peanut_internal_pkg_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_solariswu_peanut_internal_pkg_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_solariswu_peanut_internal_pkg_response.Response'
+      summary: 更新用户
+      tags:
+      - 用户
+  /health:
+    get:
+      description: 检查服务是否正常运行
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_solariswu_peanut_internal_pkg_response.Response'
+      summary: 健康检查
+      tags:
+      - 系统
+  /ready:
+    get:
+      description: 检查服务是否就绪
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_solariswu_peanut_internal_pkg_response.Response'
+      summary: 就绪检查
+      tags:
+      - 系统
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

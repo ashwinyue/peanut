@@ -1,4 +1,4 @@
-.PHONY: all build run test clean lint fmt help
+.PHONY: all build run test clean lint fmt swagger help
 
 # 变量
 APP_NAME := peanut
@@ -61,6 +61,12 @@ clean:
 	@rm -rf $(BUILD_DIR)
 	@rm -f coverage.out coverage.html
 
+# Swagger 文档生成
+swagger:
+	@echo "Generating Swagger docs..."
+	@which swag > /dev/null || go install github.com/swaggo/swag/cmd/swag@latest
+	swag init -g cmd/server/main.go -o api/v1/docs --parseDependency --parseInternal
+
 # 数据库迁移（向上）
 migrate-up:
 	@echo "Running migrations..."
@@ -93,6 +99,7 @@ help:
 	@echo "  lint           - 代码检查"
 	@echo "  fmt            - 格式化代码"
 	@echo "  tidy           - 整理依赖"
+	@echo "  swagger        - 生成 Swagger API 文档"
 	@echo "  clean          - 清理构建文件"
 	@echo "  migrate-up     - 运行数据库迁移"
 	@echo "  migrate-down   - 回滚数据库迁移"

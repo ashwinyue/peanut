@@ -1,6 +1,24 @@
 // Package main 应用程序入口
 package main
 
+// @title Peanut API
+// @version 1.0
+// @description Go + Gin + PostgreSQL + Redis 脚手架 API
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.email support@peanut.local
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8080
+// @BasePath /api/v1
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
+
 import (
 	"context"
 	"flag"
@@ -12,6 +30,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	_ "github.com/solariswu/peanut/api/v1/docs"
 	"go.uber.org/zap"
 
 	"github.com/solariswu/peanut/internal/config"
@@ -21,6 +40,9 @@ import (
 	"github.com/solariswu/peanut/internal/pkg/database"
 	"github.com/solariswu/peanut/internal/repository"
 	"github.com/solariswu/peanut/internal/service"
+
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 var configPath string
@@ -84,6 +106,9 @@ func main() {
 
 	// 注册健康检查路由
 	healthHandler.RegisterRoutes(router)
+
+	// Swagger 文档路由
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// 注册 API 路由
 	api := router.Group("/api/v1")
