@@ -7,18 +7,18 @@ import (
 
 // BaseModel 基础模型，包含公共字段
 type BaseModel struct {
-	ID        int64     `json:"id" db:"id"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+	ID        int64     `json:"id" gorm:"primaryKey;autoIncrement"`
+	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt time.Time `json:"updated_at" gorm:"autoUpdateTime"`
 }
 
 // User 用户模型
 type User struct {
 	BaseModel
-	Username string `json:"username" db:"username"`
-	Email    string `json:"email" db:"email"`
-	Password string `json:"-" db:"password"` // 密码不返回给前端
-	Status   int    `json:"status" db:"status"`
+	Username string `json:"username" gorm:"type:varchar(32);uniqueIndex;not null"`
+	Email    string `json:"email" gorm:"type:varchar(255);uniqueIndex;not null"`
+	Password string `json:"-" gorm:"type:varchar(255);not null"` // 密码不返回给前端
+	Status   int    `json:"status" gorm:"type:smallint;default:1;not null"`
 }
 
 // 用户状态常量

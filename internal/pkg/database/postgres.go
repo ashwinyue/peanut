@@ -5,56 +5,66 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 
 	"github.com/solariswu/peanut/internal/config"
 )
 
-// PostgreSQL 数据库连接池
+// PostgreSQL 数据库连接
 type PostgreSQL struct {
-	pool *pgxpool.Pool
+	db *gorm.DB
 }
 
-// NewPostgreSQL 创建新的 PostgreSQL 连接池
+// NewPostgreSQL 创建新的 GORM 数据库连接
 func NewPostgreSQL(cfg *config.DatabaseConfig) (*PostgreSQL, error) {
-	poolConfig, err := pgxpool.ParseConfig(cfg.DSN())
+	// 打开数据库连接，使用默认 logger
+	db, err := gorm.Open(postgres.Open(cfg.DSN()), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
 	if err != nil {
-		return nil, fmt.Errorf("解析数据库配置失败: %w", err)
+		return nil, fmt.Errorf("连接数据库失败: %w", err)
+	}
+
+	// 获取底层 SQL DB 以配置连接池
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("获取数据库连接失败: %w", err)
 	}
 
 	// 设置连接池参数
-	poolConfig.MaxConns = cfg.MaxConns
-	poolConfig.MinConns = cfg.MinConns
-	poolConfig.MaxConnLifetime = cfg.MaxConnLifetime
-	poolConfig.MaxConnIdleTime = cfg.MaxConnIdleTime
-
-	// 创建连接池
-	pool, err := pgxpool.NewWithConfig(context.Background(), poolConfig)
-	if err != nil {
-		return nil, fmt.Errorf("创建数据库连接池失败: %w", err)
-	}
+	sqlDB.SetMaxOpenConns(int(cfg.MaxConns))
+	sqlDB.SetMaxIdleConns(int(cfg.MinConns))
+	sqlDB.SetConnMaxLifetime(cfg.MaxConnLifetime)
+	sqlDB.SetConnMaxIdleTime(cfg.MaxConnIdleTime)
 
 	// 测试连接
-	if err := pool.Ping(context.Background()); err != nil {
+	if err := sqlDB.Ping(); err != nil {
 		return nil, fmt.Errorf("数据库连接测试失败: %w", err)
 	}
 
-	return &PostgreSQL{pool: pool}, nil
+	return &PostgreSQL{db: db}, nil
 }
 
-// Pool 获取连接池
-func (p *PostgreSQL) Pool() *pgxpool.Pool {
-	return p.pool
+// DB 获取 GORM DB 实例
+func (p *PostgreSQL) DB() *gorm.DB {
+	return p.db
 }
 
-// Close 关闭连接池
+// Close 关闭数据库连接
 func (p *PostgreSQL) Close() {
-	if p.pool != nil {
-		p.pool.Close()
+	sqlDB, err := p.db.DB()
+	if err == nil {
+		sqlDB.Close()
 	}
 }
 
 // Ping 测试连接
 func (p *PostgreSQL) Ping(ctx context.Context) error {
-	return p.pool.Ping(ctx)
+	sqlDB, err := p.db.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.PingContext(ctx)
 }

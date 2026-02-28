@@ -64,7 +64,7 @@ func main() {
 	logger.Info("Redis 连接成功")
 
 	// 初始化服务
-	userRepo := repository.NewUserRepository(db.Pool())
+	userRepo := repository.NewUserRepository(db.DB())
 	userSvc := service.NewUserService(userRepo)
 
 	// 初始化处理器
