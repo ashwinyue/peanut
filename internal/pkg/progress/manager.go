@@ -92,12 +92,14 @@ func (m *Manager) Update(analysisID int64, step int, total int, agentName string
 }
 
 // Complete 标记完成
-func (m *Manager) Complete(analysisID int64, score int) {
+func (m *Manager) Complete(analysisID int64, step int, total int, score int) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	p := Progress{
 		AnalysisID: analysisID,
+		Step:       step,
+		Total:      total,
 		Status:     "completed",
 		Score:      score,
 	}

@@ -134,7 +134,7 @@ func (s *GEOAnalysisService) executeAnalysis(ctx context.Context, analysisID int
 
 	// 标记完成
 	if s.progressMgr != nil {
-		s.progressMgr.Complete(analysisID, report.OverallScore)
+		s.progressMgr.Complete(analysisID, s.totalSteps, s.totalSteps, report.OverallScore)
 	}
 }
 
