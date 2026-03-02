@@ -107,17 +107,10 @@ func NewChain(platform string) (adk.Agent, error) {
 	}
 	subAgents = append(subAgents, agent7)
 
-	// 步骤 8: 内容验证（新增）
-	agent8, err := agents.NewContentValidatorAgent(llmModel)
-	if err != nil {
-		return nil, fmt.Errorf("创建 content_validator agent 失败: %w", err)
-	}
-	subAgents = append(subAgents, agent8)
-
 	// 创建 Sequential Agent
 	agent, err := adk.NewSequentialAgent(ctx, &adk.SequentialAgentConfig{
 		Name:        "GEOAgent",
-		Description: fmt.Sprintf("%s 生成式引擎优化（GEO）智能体，8 步流程：分析→优化→重写→验证", models.GetPlatformName(platformType)),
+		Description: fmt.Sprintf("%s 生成式引擎优化（GEO）智能体，7 步流程：分析→优化→重写", models.GetPlatformName(platformType)),
 		SubAgents:   subAgents,
 	})
 	if err != nil {
@@ -212,17 +205,15 @@ func Execute(ctx context.Context, agent adk.Agent, url string, platform string) 
 **目标平台**: %s
 **平台类型**: %s
 
-请完整执行以下 8 个步骤：
+请完整执行以下 7 个步骤：
 1. 爬取网页标题
-2. 基于国内搜索（DuckDuckGo中文搜索）进行相关查询发散
+2. 基于国内搜索（DuckDuckGo中文搜索）进行相关查询发散并总结
 3. 提取主查询（记住目标平台类型: %s）
 4. 模拟 %s AI 摘要生成
-5. 总结查询发散
-6. 生成 %s 优化报告（使用平台特定权重）
-7. 根据优化建议生成优化后的文章（遵循 %s 内容规范）
-8. 验证优化效果，对比优化前后的评分
+5. 生成 %s 优化报告（使用平台特定权重）
+6. 根据优化建议生成优化后的文章（遵循 %s 内容规范）
 
-请以 Markdown 格式返回完整的分析报告、优化文章和验证结果。`, platformName, url, platformName, platform, platform, platformName, platformName, platformName)
+请以 Markdown 格式返回完整的分析报告和优化文章。`, platformName, url, platformName, platform, platform, platformName, platformName, platformName)
 
 	// 执行 Agent
 	iter := runner.Query(ctx, query)
@@ -254,13 +245,11 @@ func Execute(ctx context.Context, agent adk.Agent, url string, platform string) 
 			if agentName == "" {
 				agentNames := []string{
 					"title_scraper",              // 步骤 1
-					"query_fanout_researcher",    // 步骤 2
+					"query_fanout_researcher",    // 步骤 2（合并了总结）
 					"main_query_extractor",       // 步骤 3
 					"ai_overview_retriever",      // 步骤 4
-					"query_fanout_summarizer",    // 步骤 5
-					"ai_content_optimizer",       // 步骤 6
-					"content_rewriter",           // 步骤 7
-					"content_validator",          // 步骤 8
+					"ai_content_optimizer",       // 步骤 5
+					"content_rewriter",           // 步骤 6
 				}
 				if stepCount <= len(agentNames) {
 					agentName = agentNames[stepCount-1]
@@ -356,13 +345,11 @@ func ExecuteWithStreaming(ctx context.Context, agent adk.Agent, url string, plat
 			if agentName == "" {
 				agentNames := []string{
 					"title_scraper",              // 步骤 1
-					"query_fanout_researcher",    // 步骤 2
+					"query_fanout_researcher",    // 步骤 2（合并了总结）
 					"main_query_extractor",       // 步骤 3
 					"ai_overview_retriever",      // 步骤 4
-					"query_fanout_summarizer",    // 步骤 5
-					"ai_content_optimizer",       // 步骤 6
-					"content_rewriter",           // 步骤 7
-					"content_validator",          // 步骤 8
+					"ai_content_optimizer",       // 步骤 5
+					"content_rewriter",           // 步骤 6
 				}
 				if stepCount <= len(agentNames) {
 					agentName = agentNames[stepCount-1]
@@ -372,13 +359,11 @@ func ExecuteWithStreaming(ctx context.Context, agent adk.Agent, url string, plat
 			// 生成友好的消息
 			stepMessages := []string{
 				"✅ 爬取网页标题完成",
-				"✅ 搜索相关查询完成",
+				"✅ 搜索并总结相关查询完成",
 				"✅ 提取主查询完成",
 				"✅ 获取 AI 摘要完成",
-				"✅ 总结查询发散完成",
 				"✅ 生成优化报告完成",
 				"✅ 生成优化后文章完成",
-				"✅ 验证优化效果完成",
 			}
 			message := ""
 			if stepCount <= len(stepMessages) {

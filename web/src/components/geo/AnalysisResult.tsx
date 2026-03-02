@@ -3,13 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { ExternalLink, Clock, RefreshCw, AlertCircle, CheckCircle, Loader2, Sparkles, FileText, Search, Lightbulb, Edit3, ChevronDown, ChevronUp, Copy, Check, Shield } from 'lucide-react'
-import type { GEOAnalysisResponse, AnalysisStatus, OptimizationSuggestion, ValidationResult } from '@/lib/types'
+import { ExternalLink, Clock, RefreshCw, AlertCircle, CheckCircle, Loader2, Sparkles, FileText, Search, Lightbulb, Edit3, ChevronDown, ChevronUp, Copy, Check } from 'lucide-react'
+import type { GEOAnalysisResponse, AnalysisStatus, OptimizationSuggestion } from '@/lib/types'
 import { PLATFORM_NAMES, PLATFORM_COLORS } from '@/lib/types'
 import { useSSEProgress } from '@/hooks/useSSEProgress'
 import { ScoreCard } from './ScoreCard'
 import { SuggestionsCard } from './SuggestionsCard'
-import { ValidationResultCard } from './ValidationResultCard'
 
 interface AnalysisResultProps {
   analysis: GEOAnalysisResponse
@@ -51,13 +50,11 @@ const statusConfig: Record<AnalysisStatus, { label: string; icon: React.ReactNod
 // 步骤名称映射
 const stepNames: Record<string, { name: string; icon: typeof Search; description: string }> = {
   'title_scraper': { name: '爬取网页标题', icon: Search, description: '获取页面基础信息' },
-  'query_fanout_researcher': { name: '搜索相关查询', icon: Search, description: '扩展相关搜索词' },
+  'query_fanout_researcher': { name: '搜索并总结查询', icon: Search, description: '扩展相关搜索词并总结' },
   'main_query_extractor': { name: '提取主查询', icon: Lightbulb, description: '识别核心关键词' },
   'ai_overview_retriever': { name: '获取 AI 摘要', icon: Sparkles, description: '抓取搜索引擎 AI 概述' },
-  'query_fanout_summarizer': { name: '总结查询发散', icon: FileText, description: '整合搜索意图' },
   'ai_content_optimizer': { name: '生成优化报告', icon: Lightbulb, description: '分析优化机会' },
   'content_rewriter': { name: '生成优化文章', icon: Edit3, description: '重写优化内容' },
-  'content_validator': { name: '验证优化效果', icon: Shield, description: '对比优化前后评分' },
 }
 
 export function AnalysisResult({ analysis, isLoading, onRefresh }: AnalysisResultProps) {
@@ -68,7 +65,6 @@ export function AnalysisResult({ analysis, isLoading, onRefresh }: AnalysisResul
     querySummary: false,
     contentGaps: true,
     optimizedArticle: false,
-    validationResult: true,
   })
   const [copiedSection, setCopiedSection] = useState<string | null>(null)
 
@@ -104,9 +100,6 @@ export function AnalysisResult({ analysis, isLoading, onRefresh }: AnalysisResul
   }
 
   const suggestions = parseJsonArray<OptimizationSuggestion>(analysis.optimization_suggestions)
-
-  // 解析验证结果
-  const validationResult = parseJsonArray<ValidationResult>(analysis.validation_result)?.[0] || null
 
   // 获取步骤显示名称
   const getStepDisplayName = (agentName: string) => {
@@ -326,21 +319,8 @@ export function AnalysisResult({ analysis, isLoading, onRefresh }: AnalysisResul
         </CardContent>
       </Card>
 
-      {/* 评分卡片 - 显示原始和优化后评分 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <ScoreCard
-          score={analysis.overall_score}
-          title="优化前评分"
-          description="原始内容 GEO 评分"
-          variant="default"
-        />
-        <ScoreCard
-          score={analysis.optimized_score || 0}
-          title="优化后评分"
-          description="重写后内容 GEO 评分"
-          variant="improved"
-        />
-      </div>
+      {/* 评分卡片 */}
+      <ScoreCard score={analysis.overall_score} />
 
       {/* AI Overview 内容 */}
       {analysis.ai_overview && (
@@ -443,13 +423,6 @@ export function AnalysisResult({ analysis, isLoading, onRefresh }: AnalysisResul
         </CollapsibleSection>
       )}
 
-      {/* 验证结果 */}
-      {validationResult && (
-        <ValidationResultCard
-          validationResult={validationResult}
-          platform={analysis.platform || 'doubao'}
-        />
-      )}
     </div>
   )
 }
