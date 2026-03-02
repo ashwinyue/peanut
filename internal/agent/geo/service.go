@@ -42,7 +42,7 @@ func (s *Service) AnalyzeURL(ctx context.Context, url string, platform string) (
 
 // AnalyzeURLWithProgress 分析 URL（带进度回调，使用指定平台）
 func (s *Service) AnalyzeURLWithProgress(ctx context.Context, url string, platform string, progress func(step int, total int, agentName string, message string)) (*models.OptimizationReport, error) {
-	totalSteps := 8
+	totalSteps := 7
 	currentStep := 0
 
 	return ExecuteWithStreaming(ctx, s.agent, url, platform, func(step int, agentName string, message string) {

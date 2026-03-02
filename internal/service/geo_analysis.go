@@ -26,7 +26,7 @@ func NewGEOAnalysisService(repo *repository.GEOAnalysisRepository, agent geo.Age
 		repo:        repo,
 		agent:       agent,
 		progressMgr: progressMgr,
-		totalSteps:  6, // GEO 分析的总步骤数（优化后）
+		totalSteps:  7, // GEO 分析的总步骤数
 	}
 }
 

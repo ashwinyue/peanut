@@ -46,7 +46,7 @@ mykey.md
 # Project specific
 .reports/
 output/
-aaa/
+#aaa/
 
 # Build artifacts
 bin/

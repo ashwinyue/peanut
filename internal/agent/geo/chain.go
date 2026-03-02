@@ -62,8 +62,8 @@ func NewChain(platform string) (adk.Agent, error) {
 	}
 	fmt.Println("✅ 使用豆包模型进行智能分析")
 
-	// 初始化 8 个 Agent（包含内容重写和验证）
-	subAgents := make([]adk.Agent, 0, 8)
+	// 初始化 7 个 Agent（分析→优化→重写）
+	subAgents := make([]adk.Agent, 0, 7)
 
 	agent1, err := agents.NewTitleScraperAgentWithModel(scraper, llmModel)
 	if err != nil {
@@ -110,7 +110,7 @@ func NewChain(platform string) (adk.Agent, error) {
 	// 创建 Sequential Agent
 	agent, err := adk.NewSequentialAgent(ctx, &adk.SequentialAgentConfig{
 		Name:        "GEOAgent",
-		Description: fmt.Sprintf("%s 生成式引擎优化（GEO）智能体，7 步流程：分析→优化→重写", models.GetPlatformName(platformType)),
+		Description: fmt.Sprintf("%s 生成式引擎优化（GEO）智能体，7 步流程：爬取→搜索→提取→摘要→总结→优化→重写", models.GetPlatformName(platformType)),
 		SubAgents:   subAgents,
 	})
 	if err != nil {
@@ -297,7 +297,7 @@ func ExecuteWithStreaming(ctx context.Context, agent adk.Agent, url string, plat
 **目标平台**: %s
 **平台类型**: %s
 
-请完整执行以下 8 个步骤：
+请完整执行以下 7 个步骤：
 1. 爬取网页标题
 2. 基于国内搜索（DuckDuckGo中文搜索）进行相关查询发散
 3. 提取主查询（记住目标平台类型: %s）
@@ -305,9 +305,8 @@ func ExecuteWithStreaming(ctx context.Context, agent adk.Agent, url string, plat
 5. 总结查询发散
 6. 生成 %s 优化报告（使用平台特定权重）
 7. 根据优化建议生成优化后的完整文章（遵循 %s 内容规范）
-8. 验证优化效果，对比优化前后的评分
 
-请以 Markdown 格式返回完整的分析报告、优化文章和验证结果。`, platformName, url, platformName, platform, platform, platformName, platformName, platformName)
+请以 Markdown 格式返回完整的分析报告和优化文章。`, platformName, url, platformName, platform, platform, platformName, platformName, platformName)
 
 	// 执行并收集进度
 	iter := runner.Query(ctx, query)

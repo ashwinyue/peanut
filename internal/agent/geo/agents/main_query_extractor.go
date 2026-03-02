@@ -20,7 +20,8 @@ func NewMainQueryExtractorAgent(llmModel model.ToolCallingChatModel) (adk.Agent,
 		Instruction: `你是查询分析专家。你的目标是识别用户最核心的搜索意图。
 
 **任务说明**：
-请查看对话历史中的上下文信息，特别是 query_fanout_researcher 输出的相关查询列表。
+前一个 agent 已经完成了查询发散研究，输出如下：
+{QueryFanout}
 
 请基于这些信息：
 1. 分析这些查询的共同主题

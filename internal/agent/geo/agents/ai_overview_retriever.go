@@ -32,9 +32,10 @@ func NewAIOverviewRetrieverAgentWithModel(serp tools.SERPProvider, llmModel mode
 		Instruction: `你是豆包元宝 AI 摘要专家。你的目标是模拟豆包元宝（字节跳动的生成式搜索引擎）的 AI 摘要功能。
 
 **任务说明**：
-请查看对话历史中的上下文信息，特别是 main_query_extractor 输出的主查询词。
+前一个 agent 已经提取了主查询，输出如下：
+{MainQuery}
 
-基于识别出的主查询：
+基于这个主查询：
 1. 使用 get_ai_overview 工具获取相关信息
 2. 模拟豆包元宝生成 AI 摘要（注重权威性、时效性、结构化）
 3. 提取关键信息

@@ -37,11 +37,11 @@ func NewAIContentOptimizerAgent(llmModel model.ToolCallingChatModel) (adk.Agent,
 5. **原创度**：内容的独特性和原创程度
 
 前几个 agent 已经完成了以下工作：
-- 网页爬取：[Title]  ← 网页标题
-- 查询发散：[QueryFanout]  ← 相关查询列表
-- 主查询：[MainQuery]  ← 核心搜索词
-- 豆包元宝 AI 摘要：[AIOverview]  ← 模拟的 AI 摘要
-- 查询总结：[QuerySummary]  ← 查询发散总结
+- 网页爬取：{Title}  ← 网页标题
+- 查询发散：{QueryFanout}  ← 相关查询列表
+- 主查询：{MainQuery}  ← 核心搜索词
+- AI 摘要：{AIOverview}  ← 模拟的 AI 摘要
+- 查询总结：{QuerySummary}  ← 查询发散总结
 
 请基于以上信息进行以下分析并返回完整的 Markdown 报告：
 
@@ -51,18 +51,17 @@ func NewAIContentOptimizerAgent(llmModel model.ToolCallingChatModel) (adk.Agent,
 
 ## 🎯 目标平台分析
 
-**目标平台**：[PlatformName]
-**平台特点**：[PlatformDescription]
+**目标平台**：[根据 PlatformType 判断：豆包/微信公众号/知乎/小红书/文心一言/元宝]
 
 ## 📊 对比分析（平台特定权重）
 
-| 维度 | 权重 | 你的内容 | 平台标准 | 差距 | 评分 |
-|------|------|---------|---------|------|------|
-| 权威性 | [AuthorityWeight]% | [评估] | 引用官方、权威来源 | [分析] | x/[AuthorityWeight] |
-| 时效性 | [TimelinessWeight]% | [评估] | 标注发布时间、最新数据 | [分析] | x/[TimelinessWeight] |
-| 结构化 | [StructureWeight]% | [评估] | 使用列表、表格、分段清晰 | [分析] | x/[StructureWeight] |
-| 互动性 | [EngagementWeight]% | [评估] | 引发互动潜力 | [分析] | x/[EngagementWeight] |
-| 原创度 | [OriginalityWeight]% | [评估] | 内容独特性 | [分析] | x/[OriginalityWeight] |
+| 维度 | 豆包权重 | 微信权重 | 知乎权重 | 小红书权重 | 文心权重 | 元宝权重 | 你的内容 | 平台标准 | 差距 |
+|------|---------|---------|---------|-----------|---------|---------|---------|---------|------|
+| 权威性 | 40% | 25% | 35% | 10% | 40% | 35% | [评估] | 引用官方、权威来源 | [分析] |
+| 时效性 | 25% | 20% | 15% | 20% | 20% | 25% | [评估] | 标注发布时间、最新数据 | [分析] |
+| 结构化 | 20% | 15% | 25% | 20% | 20% | 20% | [评估] | 使用列表、表格、分段清晰 | [分析] |
+| 互动性 | 10% | 30% | 20% | 40% | 10% | 10% | [评估] | 引发互动潜力 | [分析] |
+| 原创度 | 5% | 10% | 5% | 10% | 10% | 10% | [评估] | 内容独特性 | [分析] |
 | **总分** | **100%** | **--** | **--** | **--** | **xx/100** |
 
 ## 🔍 内容差距分析

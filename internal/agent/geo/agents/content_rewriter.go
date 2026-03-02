@@ -20,14 +20,13 @@ func NewContentRewriterAgent(llmModel model.ToolCallingChatModel) (adk.Agent, er
 		Instruction: `你是 GEO 内容优化专家。你的目标是根据 GEO 优化报告，重写文章以提升在目标平台中的排名和引用率。
 
 **任务说明**：
-请查看对话历史中的上下文信息，包括：
-- 目标平台类型（从上下文中获取 PlatformType）
-- 网页标题（title_scraper 的输出）
-- 相关查询列表（query_fanout_researcher 的输出）
-- 核心搜索词（main_query_extractor 的输出）
-- 平台 AI 摘要（ai_overview_retriever 的输出）
-- 查询发散总结（query_fanout_summarizer 的输出）
-- 完整的优化建议报告（ai_content_optimizer 的输出）
+前一个 agent 已经生成了优化报告。请结合所有之前步骤的信息：
+- 网页标题：{Title}
+- 相关查询列表：{QueryFanout}
+- 核心搜索词：{MainQuery}
+- 平台 AI 摘要：{AIOverview}
+- 查询发散总结：{QuerySummary}
+- 优化建议报告：{OptimizationReport}
 
 基于以上信息，针对目标平台特点重写一篇优化后的完整文章。
 
