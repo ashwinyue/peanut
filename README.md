@@ -1,15 +1,15 @@
 # Peanut
 
-基于 Go + Gin + PostgreSQL + Redis 构建的现代化 Web 应用脚手架，集成豆包元宝 GEO（生成式引擎优化）智能体。
+基于 Go + Gin + SQLite 构建的现代化 Web 应用脚手架，集成豆包元宝 GEO（生成式引擎优化）智能体。
 
 ## 🎯 项目简介
 
 Peanut 是一个功能完备的 Web 应用框架，提供：
 
 - **RESTful API**：基于 Gin 框架的高性能 HTTP 服务
-- **数据持久化**：GORM ORM + PostgreSQL 数据库
-- **缓存支持**：Redis 缓存层
+- **数据持久化**：GORM ORM + SQLite 数据库（轻量级，零配置）
 - **GEO 智能体**：针对豆包元宝（字节跳动生成式搜索引擎）的内容优化分析
+- **数据库存储**：分析结果持久化存储，支持历史查询
 
 ## 📋 目录
 
@@ -26,8 +26,7 @@ Peanut 是一个功能完备的 Web 应用框架，提供：
 |------|------|------|
 | Web 框架 | [Gin](https://github.com/gin-gonic/gin) | 高性能 HTTP 框架 |
 | ORM | [GORM](https://gorm.io) | Go 语言 ORM 库 |
-| 数据库 | PostgreSQL 14+ | 关系型数据库 |
-| 缓存 | Redis 6+ | 内存数据库 |
+| 数据库 | SQLite 3 | 嵌入式数据库（零配置） |
 | 配置管理 | [Viper](https://github.com/spf13/viper) | 配置文件解析 |
 | 日志 | [Zap](https://github.com/uber-go/zap) | 结构化日志 |
 | LLM | 豆包（字节跳动） | 大语言模型 |
@@ -38,9 +37,7 @@ Peanut 是一个功能完备的 Web 应用框架，提供：
 ### 环境要求
 
 - Go 1.24.0+
-- PostgreSQL 14+
-- Redis 6+
-- Docker（可选）
+- SQLite 3（内置，无需额外安装）
 
 ### 安装
 
@@ -49,31 +46,58 @@ Peanut 是一个功能完备的 Web 应用框架，提供：
 git clone https://github.com/solariswu/peanut.git
 cd peanut
 
-# 复制环境变量模板
-cp .env.example .env
-
-# 编辑 .env 配置数据库和 Redis 连接
-# vim .env
-
 # 安装依赖
 go mod download
 
-# 执行数据库迁移
-make migrate-up
+# 编译
+make build
 
-# 运行
+# 运行（自动创建 peanut.db 数据库文件）
 make run
+```
+
+### 配置
+
+创建 `configs/config.yaml` 文件：
+
+```yaml
+server:
+  port: 8080
+  mode: debug
+
+log:
+  level: info
+  format: console
+
+ark:
+  api_key: "your-api-key"  # 豆包 API Key
+  base_url: "https://ark.cn-beijing.volces.com/api/v3"
+  model: "doubao-pro-256k-240628"
+```
+
+或使用环境变量：
+
+```bash
+export ARK_API_KEY="your-api-key"
+./bin/peanut
 ```
 
 ### Docker 部署
 
 ```bash
-# 启动所有服务（PostgreSQL + Redis + App）
+# 构建并启动所有服务
 docker-compose up -d
 
 # 查看日志
-docker-compose logs -f peanut
+docker-compose logs -f
+
+# 停止服务
+docker-compose down
 ```
+
+**注意**：使用 Docker 前需要先配置 `ARK_API_KEY` 环境变量。
+
+## 📁 项目结构
 
 ## 📁 项目结构
 

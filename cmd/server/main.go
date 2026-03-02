@@ -3,7 +3,7 @@ package main
 
 // @title Peanut API
 // @version 1.0
-// @description Go + Gin + PostgreSQL + Redis 脚手架 API
+// @description Go + Gin + SQLite 脚手架 API
 // @termsOfService http://swagger.io/terms/
 
 // @contact.name API Support
@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	_ "github.com/solariswu/peanut/api/v1/docs"
 	"go.uber.org/zap"
 
@@ -38,8 +39,8 @@ import (
 	"github.com/solariswu/peanut/internal/handler"
 	"github.com/solariswu/peanut/internal/middleware"
 	"github.com/solariswu/peanut/internal/model"
-	"github.com/solariswu/peanut/internal/pkg/cache"
 	"github.com/solariswu/peanut/internal/pkg/database"
+	"github.com/solariswu/peanut/internal/pkg/progress"
 	"github.com/solariswu/peanut/internal/repository"
 	"github.com/solariswu/peanut/internal/service"
 
@@ -56,6 +57,11 @@ func init() {
 func main() {
 	flag.Parse()
 
+	// 加载 .env 文件（如果存在）
+	if err := godotenv.Load(); err != nil {
+		fmt.Println("未找到 .env 文件，使用系统环境变量")
+	}
+
 	// 加载配置
 	cfg, err := config.Load(configPath)
 	if err != nil {
@@ -71,13 +77,13 @@ func main() {
 	}
 	defer logger.Sync()
 
-	// 连接数据库
-	db, err := database.NewPostgreSQL(&cfg.Database)
+	// 连接 SQLite 数据库
+	db, err := database.NewSQLite("peanut.db")
 	if err != nil {
 		logger.Fatal("连接数据库失败", zap.Error(err))
 	}
 	defer db.Close()
-	logger.Info("数据库连接成功")
+	logger.Info("SQLite 数据库连接成功")
 
 	// 执行数据库迁移
 	if err := db.DB().AutoMigrate(&model.User{}, &model.GEOAnalysis{}); err != nil {
@@ -86,20 +92,12 @@ func main() {
 		logger.Info("数据库迁移成功")
 	}
 
-	// 连接 Redis
-	rdb, err := cache.NewRedis(&cfg.Redis)
-	if err != nil {
-		logger.Fatal("连接 Redis 失败", zap.Error(err))
-	}
-	defer rdb.Close()
-	logger.Info("Redis 连接成功")
-
 	// 初始化服务
 	userRepo := repository.NewUserRepository(db.DB())
 	userSvc := service.NewUserService(userRepo)
 
-	// 初始化 GEO 服务
-	geoService, err := geo.NewService()
+	// 初始化 GEO 服务（默认使用豆包元宝平台）
+	geoService, err := geo.NewDefaultService()
 	if err != nil {
 		logger.Warn("创建 GEO 服务失败", zap.Error(err))
 		// 不退出，GEO 服务可选
@@ -107,24 +105,22 @@ func main() {
 		logger.Info("GEO 服务初始化成功")
 	}
 
+	// 初始化进度管理器
+	progressMgr := progress.NewManager()
+	logger.Info("进度管理器初始化成功")
+
 	// 初始化 GEO 分析服务（数据库版本）
 	var geoAnalysisHandler *handler.GEOAnalysisHandler
 	if geoService != nil {
 		geoAnalysisRepo := repository.NewGEOAnalysisRepository(db.DB())
-		geoAnalysisSvc := service.NewGEOAnalysisService(geoAnalysisRepo, geoService)
-		geoAnalysisHandler = handler.NewGEOAnalysisHandler(geoAnalysisSvc)
+		geoAnalysisSvc := service.NewGEOAnalysisService(geoAnalysisRepo, geoService, progressMgr)
+		geoAnalysisHandler = handler.NewGEOAnalysisHandler(geoAnalysisSvc, progressMgr)
 		logger.Info("GEO 分析服务初始化成功")
 	}
 
 	// 初始化处理器
 	userHandler := handler.NewUserHandler(userSvc)
 	healthHandler := handler.NewHealthHandler()
-
-	// 初始化 GEO handler（如果服务可用）
-	var geoHandler *handler.GEOHandler
-	if geoService != nil {
-		geoHandler = handler.NewGEOHandler(geoService)
-	}
 
 	// 设置 Gin 模式
 	gin.SetMode(cfg.Server.Mode)
@@ -146,12 +142,6 @@ func main() {
 	// 注册 API 路由
 	api := router.Group("/api/v1")
 	userHandler.RegisterRoutes(api)
-
-	// 注册 GEO 路由
-	if geoHandler != nil {
-		geoHandler.RegisterRoutes(api)
-		logger.Info("GEO 路由已注册")
-	}
 
 	// 注册 GEO 分析路由
 	if geoAnalysisHandler != nil {

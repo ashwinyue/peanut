@@ -1,202 +1,115 @@
 import { useState, useCallback } from 'react'
-import { geoApi } from '@/lib/api'
-import type { OptimizationReport, ProgressEvent } from '@/lib/types'
+import { geoAnalysisApi } from '@/lib/api'
+import type { GEOAnalysisResponse } from '@/lib/types'
 
 interface UseGeoAnalysisResult {
-  report: OptimizationReport | null
+  currentAnalysis: GEOAnalysisResponse | null
+  analysisList: GEOAnalysisResponse[]
   isLoading: boolean
   error: string | null
-  progress: ProgressEvent | null
-  analyze: (url: string) => Promise<void>
-  analyzeWithStream: (url: string) => void
+  createAnalysis: (url: string) => Promise<GEOAnalysisResponse | null>
+  getAnalysis: (id: number) => Promise<void>
+  fetchList: (params?: { page?: number; page_size?: number; status?: string }) => Promise<void>
+  deleteAnalysis: (id: number) => Promise<boolean>
   reset: () => void
 }
 
 export function useGeoAnalysis(): UseGeoAnalysisResult {
-  const [report, setReport] = useState<OptimizationReport | null>(null)
+  const [currentAnalysis, setCurrentAnalysis] = useState<GEOAnalysisResponse | null>(null)
+  const [analysisList, setAnalysisList] = useState<GEOAnalysisResponse[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [progress, setProgress] = useState<ProgressEvent | null>(null)
 
-  // 即时分析（非流式）
-  const analyze = useCallback(async (url: string) => {
+  // 创建分析任务
+  const createAnalysis = useCallback(async (url: string): Promise<GEOAnalysisResponse | null> => {
     setIsLoading(true)
     setError(null)
-    setReport(null)
-    setProgress({
-      step: 0,
-      total: 1,
-      agent: '',
-      status: 'progress',
-      message: '正在分析...',
-    })
 
     try {
-      const response = await geoApi.analyze(url)
-      setReport(response.data.data as OptimizationReport)
-      setProgress({
-        step: 1,
-        total: 1,
-        agent: '',
-        status: 'complete',
-        message: '分析完成',
-      })
+      const response = await geoAnalysisApi.create(url)
+      const analysis = response.data.data as GEOAnalysisResponse
+      setCurrentAnalysis(analysis)
+      return analysis
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : '分析失败'
+      const errorMsg = err instanceof Error ? err.message : '创建分析任务失败'
       setError(errorMsg)
-      setProgress((prev) => prev ? { ...prev, status: 'error', error: errorMsg } : null)
+      return null
     } finally {
       setIsLoading(false)
     }
   }, [])
 
-  // 流式分析（SSE）
-  const analyzeWithStream = useCallback((url: string) => {
+  // 获取分析详情
+  const getAnalysis = useCallback(async (id: number) => {
     setIsLoading(true)
     setError(null)
-    setReport(null)
-    setProgress({
-      step: 0,
-      total: 5,
-      agent: '',
-      status: 'progress',
-      message: '正在连接...',
-    })
 
-    fetch('/api/v1/geo/analyze/stream', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'text/event-stream',
-      },
-      body: JSON.stringify({ url }),
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          throw new Error(errorData.message || '分析请求失败')
-        }
-
-        const reader = response.body?.getReader()
-        if (!reader) {
-          throw new Error('无法读取响应流')
-        }
-
-        const decoder = new TextDecoder()
-        let buffer = ''
-
-        const processLine = (line: string) => {
-          if (line.startsWith('event:')) {
-            // 事件类型行，忽略
-            return
-          }
-
-          if (line.startsWith('data:')) {
-            const data = line.slice(5).trim()
-            if (!data) return
-
-            try {
-              const parsed = JSON.parse(data)
-
-              // 开始事件
-              if (parsed.status === 'started') {
-                setProgress({
-                  step: 0,
-                  total: 5,
-                  agent: '',
-                  status: 'progress',
-                  message: '分析已开始',
-                })
-                return
-              }
-
-              // 进度事件
-              if (parsed.step !== undefined && parsed.total !== undefined) {
-                setProgress({
-                  step: parsed.step,
-                  total: parsed.total,
-                  agent: parsed.agent || '',
-                  message: parsed.message || '',
-                  status: 'progress',
-                })
-                return
-              }
-
-              // 完成事件 - SSE 只返回 score，需要调用即时 API 获取完整报告
-              if (parsed.status === 'success' && parsed.score !== undefined) {
-                setProgress((prev) => ({
-                  step: prev?.total || 5,
-                  total: prev?.total || 5,
-                  agent: '',
-                  status: 'complete',
-                  message: '分析完成，正在获取报告...',
-                }))
-
-                // 调用即时分析 API 获取完整报告
-                geoApi.analyze(url)
-                  .then((res) => {
-                    setReport(res.data.data as OptimizationReport)
-                  })
-                  .catch((err) => {
-                    setError(err instanceof Error ? err.message : '获取报告失败')
-                  })
-                  .finally(() => {
-                    setIsLoading(false)
-                  })
-                return
-              }
-
-              // 错误事件
-              if (parsed.error) {
-                setError(parsed.error)
-                setProgress((prev) => prev ? { ...prev, status: 'error', error: parsed.error } : null)
-                setIsLoading(false)
-              }
-            } catch {
-              console.error('Failed to parse SSE data:', data)
-            }
-          }
-        }
-
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-
-          buffer += decoder.decode(value, { stream: true })
-          const lines = buffer.split('\n')
-          buffer = lines.pop() || ''
-
-          for (const line of lines) {
-            processLine(line)
-          }
-        }
-
-        // 处理剩余的 buffer
-        if (buffer.trim()) {
-          processLine(buffer)
-        }
-      })
-      .catch((err) => {
-        setError(err.message)
-        setProgress((prev) => prev ? { ...prev, status: 'error', error: err.message } : null)
-        setIsLoading(false)
-      })
+    try {
+      const response = await geoAnalysisApi.getById(id)
+      setCurrentAnalysis(response.data.data as GEOAnalysisResponse)
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : '获取分析详情失败'
+      setError(errorMsg)
+    } finally {
+      setIsLoading(false)
+    }
   }, [])
 
+  // 获取分析列表
+  const fetchList = useCallback(async (params?: { page?: number; page_size?: number; status?: string }) => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const response = await geoAnalysisApi.list(params)
+      const pageData = response.data.data
+      setAnalysisList(pageData?.list || [])
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : '获取分析列表失败'
+      setError(errorMsg)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  // 删除分析
+  const deleteAnalysis = useCallback(async (id: number): Promise<boolean> => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      await geoAnalysisApi.delete(id)
+      // 从列表中移除
+      setAnalysisList((prev) => prev.filter((item) => item.id !== id))
+      // 如果当前查看的是被删除的项，清空
+      if (currentAnalysis?.id === id) {
+        setCurrentAnalysis(null)
+      }
+      return true
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : '删除失败'
+      setError(errorMsg)
+      return false
+    } finally {
+      setIsLoading(false)
+    }
+  }, [currentAnalysis])
+
   const reset = useCallback(() => {
-    setReport(null)
+    setCurrentAnalysis(null)
     setError(null)
     setIsLoading(false)
-    setProgress(null)
   }, [])
 
   return {
-    report,
+    currentAnalysis,
+    analysisList,
     isLoading,
     error,
-    progress,
-    analyze,
-    analyzeWithStream,
+    createAnalysis,
+    getAnalysis,
+    fetchList,
+    deleteAnalysis,
     reset,
   }
 }

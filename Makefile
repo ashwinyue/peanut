@@ -60,23 +60,13 @@ clean:
 	@echo "Cleaning..."
 	@rm -rf $(BUILD_DIR)
 	@rm -f coverage.out coverage.html
+	@rm -f peanut.db peanut.db-journal
 
 # Swagger 文档生成
 swagger:
 	@echo "Generating Swagger docs..."
 	@which swag > /dev/null || go install github.com/swaggo/swag/cmd/swag@latest
 	swag init -g cmd/server/main.go -o api/v1/docs --parseDependency --parseInternal
-
-# 数据库迁移（向上）
-migrate-up:
-	@echo "Running migrations..."
-	@which migrate > /dev/null || go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
-	migrate -path ./scripts/migrations -database "postgres://postgres:postgres@localhost:5432/peanut?sslmode=disable" up
-
-# 数据库迁移（向下）
-migrate-down:
-	@echo "Rolling back migrations..."
-	migrate -path ./scripts/migrations -database "postgres://postgres:postgres@localhost:5432/peanut?sslmode=disable" down
 
 # Docker 构建
 docker-build:
@@ -86,38 +76,22 @@ docker-build:
 # Docker 运行
 docker-run:
 	@echo "Running Docker container..."
-	docker run -p 8080:8080 $(APP_NAME):latest
+	docker run -p 8080:8080 --env-file .env $(APP_NAME):latest
 
-# Docker Compose - 开发环境（仅数据库和 Redis）
-docker-dev-up:
-	@echo "Starting development environment (PostgreSQL + Redis)..."
+# Docker Compose
+docker-up:
+	@echo "Starting services..."
 	docker-compose up -d
 
-docker-dev-down:
-	@echo "Stopping development environment..."
+docker-down:
+	@echo "Stopping services..."
 	docker-compose down
 
-docker-dev-logs:
+docker-logs:
 	docker-compose logs -f
 
-# Docker Compose - 生产环境（前后端 + 数据库 + Redis）
-docker-prod-build:
-	@echo "Building production images..."
-	docker-compose -f docker-compose.prod.yaml build
-
-docker-prod-up:
-	@echo "Starting production environment..."
-	docker-compose -f docker-compose.prod.yaml up -d
-
-docker-prod-down:
-	@echo "Stopping production environment..."
-	docker-compose -f docker-compose.prod.yaml down
-
-docker-prod-logs:
-	docker-compose -f docker-compose.prod.yaml logs -f
-
-docker-prod-ps:
-	docker-compose -f docker-compose.prod.yaml ps
+docker-ps:
+	docker-compose ps
 
 # 帮助
 help:
@@ -131,16 +105,12 @@ help:
 	@echo "  fmt            - 格式化代码"
 	@echo "  tidy           - 整理依赖"
 	@echo "  swagger        - 生成 Swagger API 文档"
-	@echo "  clean          - 清理构建文件"
-	@echo "  migrate-up     - 运行数据库迁移"
-	@echo "  migrate-down   - 回滚数据库迁移"
-	@echo "  docker-build     - 构建 Docker 镜像"
-	@echo "  docker-run       - 运行 Docker 容器"
-	@echo "  docker-dev-up    - 启动开发环境 (PostgreSQL + Redis)"
-	@echo "  docker-dev-down  - 停止开发环境"
-	@echo "  docker-dev-logs  - 查看开发环境日志"
-	@echo "  docker-prod-build - 构建生产环境镜像"
-	@echo "  docker-prod-up   - 启动生产环境 (全栈)"
-	@echo "  docker-prod-down - 停止生产环境"
-	@echo "  docker-prod-logs - 查看生产环境日志"
-	@echo "  docker-prod-ps   - 查看生产环境容器状态"
+	@echo "  clean          - 清理构建文件和数据库"
+	@echo ""
+	@echo "Docker targets:"
+	@echo "  docker-build   - 构建 Docker 镜像"
+	@echo "  docker-run     - 运行 Docker 容器"
+	@echo "  docker-up      - 启动所有服务（Docker Compose）"
+	@echo "  docker-down    - 停止所有服务"
+	@echo "  docker-logs    - 查看日志"
+	@echo "  docker-ps      - 查看容器状态"

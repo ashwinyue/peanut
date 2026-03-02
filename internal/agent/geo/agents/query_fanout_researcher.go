@@ -12,18 +12,18 @@ import (
 )
 
 // NewQueryFanoutResearcherAgent 2. 查询发散研究 Agent
-func NewQueryFanoutResearcherAgent(searcher tools.Searcher) adk.Agent {
+func NewQueryFanoutResearcherAgent(searcher tools.Searcher) (adk.Agent, error) {
 	return NewQueryFanoutResearcherAgentWithModel(searcher, nil)
 }
 
 // NewQueryFanoutResearcherAgentWithModel 2. 查询发散研究 Agent（带模型）
-func NewQueryFanoutResearcherAgentWithModel(searcher tools.Searcher, llmModel model.ToolCallingChatModel) adk.Agent {
+func NewQueryFanoutResearcherAgentWithModel(searcher tools.Searcher, llmModel model.ToolCallingChatModel) (adk.Agent, error) {
 	ctx := context.Background()
 
 	// 创建搜索工具
 	searcherTool, err := NewSearcherToolAdapter(searcher)
 	if err != nil {
-		panic(fmt.Sprintf("创建搜索工具失败: %v", err))
+		return nil, fmt.Errorf("创建搜索工具失败: %w", err)
 	}
 
 	a, err := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
@@ -42,17 +42,17 @@ func NewQueryFanoutResearcherAgentWithModel(searcher tools.Searcher, llmModel mo
 请返回格式：
 - 原始查询
 - 相关查询列表（编号）`,
-		Model: llmModel,
+		Model:     llmModel,
+		OutputKey: "QueryFanout",
 		ToolsConfig: adk.ToolsConfig{
 			ToolsNodeConfig: compose.ToolsNodeConfig{
 				Tools: []tool.BaseTool{searcherTool},
 			},
 		},
 	})
-
 	if err != nil {
-		panic(fmt.Sprintf("创建 query_fanout_researcher agent 失败: %v", err))
+		return nil, fmt.Errorf("创建 query_fanout_researcher agent 失败: %w", err)
 	}
 
-	return a
+	return a, nil
 }

@@ -12,18 +12,18 @@ import (
 )
 
 // NewAIOverviewRetrieverAgent 4. AI Overview 获取 Agent
-func NewAIOverviewRetrieverAgent(serp tools.SERPProvider) adk.Agent {
+func NewAIOverviewRetrieverAgent(serp tools.SERPProvider) (adk.Agent, error) {
 	return NewAIOverviewRetrieverAgentWithModel(serp, nil)
 }
 
 // NewAIOverviewRetrieverAgentWithModel 4. AI Overview 获取 Agent（带模型）
-func NewAIOverviewRetrieverAgentWithModel(serp tools.SERPProvider, llmModel model.ToolCallingChatModel) adk.Agent {
+func NewAIOverviewRetrieverAgentWithModel(serp tools.SERPProvider, llmModel model.ToolCallingChatModel) (adk.Agent, error) {
 	ctx := context.Background()
 
 	// 创建 SERP 工具
 	serpTool, err := NewSERPToolAdapter(serp)
 	if err != nil {
-		panic(fmt.Sprintf("创建 SERP 工具失败: %v", err))
+		return nil, fmt.Errorf("创建 SERP 工具失败: %w", err)
 	}
 
 	a, err := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
@@ -31,10 +31,10 @@ func NewAIOverviewRetrieverAgentWithModel(serp tools.SERPProvider, llmModel mode
 		Description: "获取豆包元宝 AI 摘要内容",
 		Instruction: `你是豆包元宝 AI 摘要专家。你的目标是模拟豆包元宝（字节跳动的生成式搜索引擎）的 AI 摘要功能。
 
-前一个 agent 已经提取了主查询：
-{MainQuery}  // ← 占位符，会被前一个 agent 的输出替换
+**任务说明**：
+请查看对话历史中的上下文信息，特别是 main_query_extractor 输出的主查询词。
 
-请基于这个主查询：
+基于识别出的主查询：
 1. 使用 get_ai_overview 工具获取相关信息
 2. 模拟豆包元宝生成 AI 摘要（注重权威性、时效性、结构化）
 3. 提取关键信息
@@ -49,17 +49,17 @@ func NewAIOverviewRetrieverAgentWithModel(serp tools.SERPProvider, llmModel mode
 - 查询词
 - AI 摘要内容（结构化呈现）
 - 引用来源列表（标注来源类型）`,
-		Model: llmModel,
+		Model:     llmModel,
+		OutputKey: "AIOverview",
 		ToolsConfig: adk.ToolsConfig{
 			ToolsNodeConfig: compose.ToolsNodeConfig{
 				Tools: []tool.BaseTool{serpTool},
 			},
 		},
 	})
-
 	if err != nil {
-		panic(fmt.Sprintf("创建 ai_overview_retriever agent 失败: %v", err))
+		return nil, fmt.Errorf("创建 ai_overview_retriever agent 失败: %w", err)
 	}
 
-	return a
+	return a, nil
 }

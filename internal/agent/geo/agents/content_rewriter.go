@@ -9,24 +9,64 @@ import (
 )
 
 // NewContentRewriterAgent 7. 内容重写 Agent
-func NewContentRewriterAgent(llmModel model.ToolCallingChatModel) adk.Agent {
+func NewContentRewriterAgent(llmModel model.ToolCallingChatModel) (adk.Agent, error) {
 	ctx := context.Background()
 
 	a, err := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
 		Name:        "content_rewriter",
-		Description: "根据优化建议生成豆包元宝优化后的文章",
+		Description: "根据优化建议生成目标平台优化后的文章（支持多平台）",
 		Model:       llmModel,
-		Instruction: `你是豆包元宝内容优化专家。你的目标是根据 GEO 优化报告，重写文章以提升在豆包元宝中的引用率。
+		OutputKey:   "OptimizedArticle",
+		Instruction: `你是 GEO 内容优化专家。你的目标是根据 GEO 优化报告，重写文章以提升在目标平台中的排名和引用率。
 
-前几个 agent 已经完成了以下工作：
-- 网页爬取：{Title}  ← 网页标题
-- 查询发散：{QueryFanout}  ← 相关查询列表
-- 主查询：{MainQuery}  ← 核心搜索词
-- 豆包元宝 AI 摘要：{AIOverview}  ← 模拟的 AI 摘要
-- 查询总结：{QuerySummary}  ← 查询发散总结
-- 优化报告：{OptimizationReport}  ← 完整的优化建议报告
+**任务说明**：
+请查看对话历史中的上下文信息，包括：
+- 目标平台类型（从上下文中获取 PlatformType）
+- 网页标题（title_scraper 的输出）
+- 相关查询列表（query_fanout_researcher 的输出）
+- 核心搜索词（main_query_extractor 的输出）
+- 平台 AI 摘要（ai_overview_retriever 的输出）
+- 查询发散总结（query_fanout_summarizer 的输出）
+- 完整的优化建议报告（ai_content_optimizer 的输出）
 
-## 豆包元宝内容重写原则
+基于以上信息，针对目标平台特点重写一篇优化后的完整文章。
+
+## 平台特定内容重写原则
+
+首先识别目标平台，然后遵循相应的重写原则：
+
+### 通用原则（所有平台）
+1. **权威性优先**：开篇明确引用权威来源
+2. **时效性强化**：标注时间、使用最新数据
+3. **结构化呈现**：使用标题、列表、表格
+4. **中文质量**：简洁明了、避免翻译腔
+
+### 豆包元宝特定原则
+- 强调官方来源和权威媒体引用
+- 使用结构化数据呈现
+- 控制文章长度在 800-2000 字
+
+### 微信公众号特定原则
+- 标题控制在 17 字以内（显示限制）
+- 首段抓人，前 100 字决定打开率
+- 段落简短，适合移动端阅读（每段 2-3 行）
+- 文末添加互动引导（在看、点赞、评论）
+- 使用亲切、口语化的表达
+
+### 知乎特定原则
+- 采用「总-分-总」结构
+- 开篇给出核心观点（一句话总结）
+- 引用论文、数据、权威机构支撑
+- 深度分析，建议 3000-5000 字
+- 专业术语首次出现加解释
+
+### 小红书特定原则
+- 种草文风格：分享 > 推销
+- 标题含 emoji，如 🔥✨💯
+- 每段不超过 2 行
+- 使用 ✅ ❌ 等符号标注
+- 添加 3-5 个精准标签
+- 口语化表达，像朋友聊天
 
 ### 1. 权威性优先（40%）
 - 开篇明确引用权威来源（政府机构、官方文档、权威媒体、学术期刊）
@@ -102,10 +142,9 @@ func NewContentRewriterAgent(llmModel model.ToolCallingChatModel) adk.Agent {
 
 请基于以上要求和优化报告，生成完整的优化后文章。`,
 	})
-
 	if err != nil {
-		panic(fmt.Sprintf("创建 content_rewriter agent 失败: %v", err))
+		return nil, fmt.Errorf("创建 content_rewriter agent 失败: %w", err)
 	}
 
-	return a
+	return a, nil
 }

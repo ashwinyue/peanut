@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/cloudwego/eino/adk"
-	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/schema"
 	"github.com/solariswu/peanut/internal/agent/geo/agents"
 	"github.com/solariswu/peanut/internal/agent/geo/llm"
@@ -18,7 +18,17 @@ import (
 )
 
 // NewChain 创建新的 GEO Chain（使用 Eino ADK）
-func NewChain() (adk.Agent, error) {
+// 支持多平台：doubao/wechat/zhihu/xiaohongshu/wenxin/yuanbao
+func NewChain(platform string) (adk.Agent, error) {
+	ctx := context.Background()
+
+	// 验证并设置默认平台
+	platformType := models.PlatformType(platform)
+	if !models.IsValidPlatform(platformType) {
+		platformType = models.PlatformDoubao
+	}
+	fmt.Printf("🎯 目标平台: %s\n", models.GetPlatformName(platformType))
+
 	// 初始化工具
 	scraper := tools.NewHTTPScraper()
 
@@ -33,7 +43,7 @@ func NewChain() (adk.Agent, error) {
 	var serp tools.SERPProvider
 	if doubaoSERP, err := tools.NewDoubaoSERPProvider(); err == nil {
 		serp = doubaoSERP
-		fmt.Println("✅ 使用豆包模型生成豆包元宝 AI 摘要")
+		fmt.Println("✅ 使用豆包模型生成 AI 摘要")
 	} else {
 		// 回退到 DuckDuckGo
 		ddgSERP, err := tools.NewDuckDuckGoSERPProvider()
@@ -41,38 +51,75 @@ func NewChain() (adk.Agent, error) {
 			return nil, fmt.Errorf("创建 SERP provider 失败: %w", err)
 		}
 		serp = ddgSERP
-		fmt.Println("✅ 使用 DuckDuckGo 免费搜索生成豆包元宝 AI 摘要")
+		fmt.Println("✅ 使用 DuckDuckGo 免费搜索生成 AI 摘要")
 		fmt.Printf("⚠️  未配置豆包 API key (%v)\n", err)
 	}
 
-	// 尝试初始化豆包 LLM
-	var llmModel model.ToolCallingChatModel
-	if arkModel, err := llm.NewArkChatModel(); err == nil {
-		llmModel = arkModel
-		fmt.Println("✅ 使用豆包模型进行智能分析")
-	} else {
-		fmt.Printf("⚠️  未配置豆包 LLM，使用默认模型 (%v)\n", err)
-		llmModel = nil // 不设置模型，让 Eino 使用默认配置
+	// 使用统一的 Model 初始化
+	llmModel, err := llm.NewChatModel(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("初始化 LLM 失败: %w", err)
 	}
+	fmt.Println("✅ 使用豆包模型进行智能分析")
 
-	// 初始化 7 个 Agent（包含内容重写）
-	subAgents := []adk.Agent{
-		agents.NewTitleScraperAgentWithModel(scraper, llmModel),
-		agents.NewQueryFanoutResearcherAgentWithModel(searcher, llmModel),
-		agents.NewMainQueryExtractorAgent(llmModel),
-		agents.NewAIOverviewRetrieverAgentWithModel(serp, llmModel),
-		agents.NewQueryFanoutSummarizerAgent(llmModel),
-		agents.NewAIContentOptimizerAgent(llmModel),
-		agents.NewContentRewriterAgent(llmModel),
+	// 初始化 8 个 Agent（包含内容重写和验证）
+	subAgents := make([]adk.Agent, 0, 8)
+
+	agent1, err := agents.NewTitleScraperAgentWithModel(scraper, llmModel)
+	if err != nil {
+		return nil, fmt.Errorf("创建 title_scraper agent 失败: %w", err)
 	}
+	subAgents = append(subAgents, agent1)
+
+	agent2, err := agents.NewQueryFanoutResearcherAgentWithModel(searcher, llmModel)
+	if err != nil {
+		return nil, fmt.Errorf("创建 query_fanout_researcher agent 失败: %w", err)
+	}
+	subAgents = append(subAgents, agent2)
+
+	agent3, err := agents.NewMainQueryExtractorAgent(llmModel)
+	if err != nil {
+		return nil, fmt.Errorf("创建 main_query_extractor agent 失败: %w", err)
+	}
+	subAgents = append(subAgents, agent3)
+
+	agent4, err := agents.NewAIOverviewRetrieverAgentWithModel(serp, llmModel)
+	if err != nil {
+		return nil, fmt.Errorf("创建 ai_overview_retriever agent 失败: %w", err)
+	}
+	subAgents = append(subAgents, agent4)
+
+	agent5, err := agents.NewQueryFanoutSummarizerAgent(llmModel)
+	if err != nil {
+		return nil, fmt.Errorf("创建 query_fanout_summarizer agent 失败: %w", err)
+	}
+	subAgents = append(subAgents, agent5)
+
+	agent6, err := agents.NewAIContentOptimizerAgent(llmModel)
+	if err != nil {
+		return nil, fmt.Errorf("创建 ai_content_optimizer agent 失败: %w", err)
+	}
+	subAgents = append(subAgents, agent6)
+
+	agent7, err := agents.NewContentRewriterAgent(llmModel)
+	if err != nil {
+		return nil, fmt.Errorf("创建 content_rewriter agent 失败: %w", err)
+	}
+	subAgents = append(subAgents, agent7)
+
+	// 步骤 8: 内容验证（新增）
+	agent8, err := agents.NewContentValidatorAgent(llmModel)
+	if err != nil {
+		return nil, fmt.Errorf("创建 content_validator agent 失败: %w", err)
+	}
+	subAgents = append(subAgents, agent8)
 
 	// 创建 Sequential Agent
-	agent, err := adk.NewSequentialAgent(context.Background(), &adk.SequentialAgentConfig{
+	agent, err := adk.NewSequentialAgent(ctx, &adk.SequentialAgentConfig{
 		Name:        "GEOAgent",
-		Description: "豆包元宝生成式引擎优化（GEO）智能体，7 步流程：分析→优化→内容重写",
+		Description: fmt.Sprintf("%s 生成式引擎优化（GEO）智能体，8 步流程：分析→优化→重写→验证", models.GetPlatformName(platformType)),
 		SubAgents:   subAgents,
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("创建 Sequential Agent 失败: %w", err)
 	}
@@ -114,6 +161,9 @@ func saveIntermediateOutput(step int, agentName string, content string, url stri
 	case "content_rewriter":
 		filename = "optimized_article.md"
 		title = fmt.Sprintf("# 优化后的文章\n\n**原文 URL**: %s\n\n**生成时间**: %s\n\n", url, time.Now().Format("2006-01-02 15:04:05"))
+	case "content_validator":
+		filename = "validation_result.md"
+		title = fmt.Sprintf("# 优化效果验证\n\n**原文 URL**: %s\n\n**验证时间**: %s\n\n", url, time.Now().Format("2006-01-02 15:04:05"))
 	default:
 		// 其他步骤不保存文件
 		return nil
@@ -132,13 +182,13 @@ func saveIntermediateOutput(step int, agentName string, content string, url stri
 	return nil
 }
 
-// NewDefaultChain 使用默认配置创建 Chain
+// NewDefaultChain 使用默认配置创建 Chain（豆包元宝平台）
 func NewDefaultChain() (adk.Agent, error) {
-	return NewChain()
+	return NewChain("doubao")
 }
 
-// Execute 执行 Chain
-func Execute(ctx context.Context, agent adk.Agent, url string) (*models.OptimizationReport, error) {
+// Execute 执行 Chain（支持指定平台）
+func Execute(ctx context.Context, agent adk.Agent, url string, platform string) (*models.OptimizationReport, error) {
 	// 创建输出目录
 	if err := ensureOutputDir(); err != nil {
 		return nil, fmt.Errorf("创建输出目录失败: %w", err)
@@ -149,19 +199,30 @@ func Execute(ctx context.Context, agent adk.Agent, url string) (*models.Optimiza
 		Agent: agent,
 	})
 
-	// 构建查询
-	query := fmt.Sprintf(`请分析这个 URL 的豆包元宝 GEO 优化潜力: %s
+	// 验证平台
+	platformType := models.PlatformType(platform)
+	if !models.IsValidPlatform(platformType) {
+		platformType = models.PlatformDoubao
+	}
+	platformName := models.GetPlatformName(platformType)
 
-请完整执行以下 7 个步骤：
+	// 构建查询
+	query := fmt.Sprintf(`请分析这个 URL 的 %s GEO 优化潜力: %s
+
+**目标平台**: %s
+**平台类型**: %s
+
+请完整执行以下 8 个步骤：
 1. 爬取网页标题
 2. 基于国内搜索（DuckDuckGo中文搜索）进行相关查询发散
-3. 提取主查询
-4. 模拟豆包元宝 AI 摘要生成
+3. 提取主查询（记住目标平台类型: %s）
+4. 模拟 %s AI 摘要生成
 5. 总结查询发散
-6. 生成豆包元宝优化报告
-7. 根据优化建议生成优化后的文章
+6. 生成 %s 优化报告（使用平台特定权重）
+7. 根据优化建议生成优化后的文章（遵循 %s 内容规范）
+8. 验证优化效果，对比优化前后的评分
 
-请以 Markdown 格式返回完整的分析报告和优化文章。`, url)
+请以 Markdown 格式返回完整的分析报告、优化文章和验证结果。`, platformName, url, platformName, platform, platform, platformName, platformName, platformName)
 
 	// 执行 Agent
 	iter := runner.Query(ctx, query)
@@ -199,6 +260,7 @@ func Execute(ctx context.Context, agent adk.Agent, url string) (*models.Optimiza
 					"query_fanout_summarizer",    // 步骤 5
 					"ai_content_optimizer",       // 步骤 6
 					"content_rewriter",           // 步骤 7
+					"content_validator",          // 步骤 8
 				}
 				if stepCount <= len(agentNames) {
 					agentName = agentNames[stepCount-1]
@@ -220,8 +282,8 @@ func Execute(ctx context.Context, agent adk.Agent, url string) (*models.Optimiza
 	return report, nil
 }
 
-// ExecuteWithStreaming 流式执行（带进度回调）
-func ExecuteWithStreaming(ctx context.Context, agent adk.Agent, url string, callback func(step int, agentName string, message string)) (*models.OptimizationReport, error) {
+// ExecuteWithStreaming 流式执行（带进度回调，支持指定平台）
+func ExecuteWithStreaming(ctx context.Context, agent adk.Agent, url string, platform string, callback func(step int, agentName string, message string)) (*models.OptimizationReport, error) {
 	// 创建输出目录
 	if err := ensureOutputDir(); err != nil {
 		return nil, fmt.Errorf("创建输出目录失败: %w", err)
@@ -233,23 +295,37 @@ func ExecuteWithStreaming(ctx context.Context, agent adk.Agent, url string, call
 		Agent: agent,
 	})
 
-	// 构建完整的查询（与 Execute 相同）
-	query := fmt.Sprintf(`请分析这个 URL 的豆包元宝 GEO 优化潜力: %s
+	// 验证平台
+	platformType := models.PlatformType(platform)
+	if !models.IsValidPlatform(platformType) {
+		platformType = models.PlatformDoubao
+	}
+	platformName := models.GetPlatformName(platformType)
 
-请完整执行以下 6 个步骤：
+	// 构建完整的查询
+	query := fmt.Sprintf(`请分析这个 URL 的 %s GEO 优化潜力: %s
+
+**目标平台**: %s
+**平台类型**: %s
+
+请完整执行以下 8 个步骤：
 1. 爬取网页标题
 2. 基于国内搜索（DuckDuckGo中文搜索）进行相关查询发散
-3. 提取主查询
-4. 模拟豆包元宝 AI 摘要生成
+3. 提取主查询（记住目标平台类型: %s）
+4. 模拟 %s AI 摘要生成
 5. 总结查询发散
-6. 生成豆包元宝优化报告
+6. 生成 %s 优化报告（使用平台特定权重）
+7. 根据优化建议生成优化后的完整文章（遵循 %s 内容规范）
+8. 验证优化效果，对比优化前后的评分
 
-请以 Markdown 格式返回完整的分析报告。`, url)
+请以 Markdown 格式返回完整的分析报告、优化文章和验证结果。`, platformName, url, platformName, platform, platform, platformName, platformName, platformName)
 
 	// 执行并收集进度
 	iter := runner.Query(ctx, query)
 
 	stepCount := 0
+	// 收集每个步骤的输出，用于后续合并解析
+	stepOutputs := make(map[string]string)
 	var finalMessage *schema.Message
 
 	for {
@@ -286,6 +362,7 @@ func ExecuteWithStreaming(ctx context.Context, agent adk.Agent, url string, call
 					"query_fanout_summarizer",    // 步骤 5
 					"ai_content_optimizer",       // 步骤 6
 					"content_rewriter",           // 步骤 7
+					"content_validator",          // 步骤 8
 				}
 				if stepCount <= len(agentNames) {
 					agentName = agentNames[stepCount-1]
@@ -297,10 +374,11 @@ func ExecuteWithStreaming(ctx context.Context, agent adk.Agent, url string, call
 				"✅ 爬取网页标题完成",
 				"✅ 搜索相关查询完成",
 				"✅ 提取主查询完成",
-				"✅ 获取豆包元宝 AI 摘要完成",
+				"✅ 获取 AI 摘要完成",
 				"✅ 总结查询发散完成",
 				"✅ 生成优化报告完成",
 				"✅ 生成优化后文章完成",
+				"✅ 验证优化效果完成",
 			}
 			message := ""
 			if stepCount <= len(stepMessages) {
@@ -318,14 +396,94 @@ func ExecuteWithStreaming(ctx context.Context, agent adk.Agent, url string, call
 				fmt.Printf("⚠️  保存中间输出失败: %v\n", err)
 			}
 
+			// 收集每个步骤的输出
+			if agentName != "" {
+				stepOutputs[agentName] = msg.Content
+			}
+
 			finalMessage = msg
 		}
 	}
 
+	// 合并所有步骤的输出，构建完整的报告内容
+	fullContent := buildFullContent(stepOutputs, finalMessage, url)
+
 	// 返回报告
-	report := parseReport(finalMessage, url)
+	report := parseReportFullContent(fullContent, url)
 
 	return report, nil
+}
+
+// buildFullContent 合并所有步骤的输出为完整内容
+func buildFullContent(stepOutputs map[string]string, finalMessage *schema.Message, url string) string {
+	var content strings.Builder
+
+	// 添加标题
+	content.WriteString(fmt.Sprintf("# GEO 优化分析报告\n\n**URL**: %s\n\n", url))
+
+	// 按顺序添加各个步骤的输出
+	stepOrder := []string{
+		"title_scraper",
+		"query_fanout_researcher",
+		"main_query_extractor",
+		"ai_overview_retriever",
+		"query_fanout_summarizer",
+		"ai_content_optimizer",
+		"content_rewriter",
+		"content_validator",
+	}
+
+	sectionTitles := map[string]string{
+		"title_scraper":           "网页标题",
+		"query_fanout_researcher": "查询发散",
+		"main_query_extractor":    "主查询",
+		"ai_overview_retriever":   "AI 摘要",
+		"query_fanout_summarizer": "查询发散总结",
+		"ai_content_optimizer":    "优化报告",
+		"content_rewriter":        "优化后的文章",
+		"content_validator":       "优化效果验证",
+	}
+
+	for _, agentName := range stepOrder {
+		if output, ok := stepOutputs[agentName]; ok && output != "" {
+			title := sectionTitles[agentName]
+			content.WriteString(fmt.Sprintf("\n## %s\n\n", title))
+			content.WriteString(output)
+			content.WriteString("\n")
+		}
+	}
+
+	// 如果没有收集到步骤输出，使用 finalMessage
+	if len(stepOutputs) == 0 && finalMessage != nil {
+		content.WriteString(finalMessage.Content)
+	}
+
+	return content.String()
+}
+
+// parseReportFullContent 从完整内容解析报告
+func parseReportFullContent(content, url string) *models.OptimizationReport {
+	if content == "" {
+		return &models.OptimizationReport{
+			URL:          url,
+			OverallScore: 75,
+			Title:        "未获取到标题",
+		}
+	}
+
+	// 使用解析器解析完整的报告
+	report := parser.ParseOptimizationReport(content, url)
+
+	// 如果解析失败，返回基本报告
+	if report == nil {
+		return &models.OptimizationReport{
+			URL:          url,
+			OverallScore: 75,
+			Title:        parser.ExtractTitle(content),
+		}
+	}
+
+	return report
 }
 
 // parseReport 解析消息为报告

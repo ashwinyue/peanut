@@ -28,12 +28,66 @@ func ParseOptimizationReport(content, url string) *models.OptimizationReport {
 	// 提取优化建议
 	report.OptimizationSuggestions = extractOptimizationSuggestions(content)
 
+	// 提取中间结果字段
+	report.QueryFanout = extractSection(content, "查询发散", "## ")
+	report.QueryFanoutSummary = extractSection(content, "查询发散总结", "## ")
+	report.AIOverview = extractSection(content, "AI 摘要", "## ")
+	report.OptimizationReport = extractSection(content, "优化报告", "## ")
+	report.OptimizedArticle = extractSection(content, "优化后的文章", "## ")
+
 	// 如果没有提取到标题，使用 URL 生成一个
 	if report.Title == "" {
 		report.Title = generateTitleFromURL(url)
 	}
 
 	return report
+}
+
+// extractSection 提取指定章节的内容
+func extractSection(content, sectionName, endMarker string) string {
+	// 尝试多种标题格式
+	patterns := []string{
+		"## " + sectionName,
+		"### " + sectionName,
+		"# " + sectionName,
+		"**" + sectionName + "**",
+	}
+
+	for _, pattern := range patterns {
+		startIdx := strings.Index(content, pattern)
+		if startIdx == -1 {
+			continue
+		}
+
+		// 找到章节开始位置（跳过标题行）
+		startIdx += len(pattern)
+		newlineIdx := strings.Index(content[startIdx:], "\n")
+		if newlineIdx != -1 {
+			startIdx += newlineIdx + 1
+		}
+
+		// 查找下一个同级标题
+		restContent := content[startIdx:]
+		endIdx := len(restContent)
+
+		// 查找结束标记
+		for _, marker := range []string{"\n## ", "\n#\n"} {
+			if idx := strings.Index(restContent, marker); idx != -1 && idx < endIdx {
+				// 确保不是 ###（除非我们的模式也是 ###）
+				if !strings.HasPrefix(pattern, "###") && idx+4 < len(restContent) && restContent[idx+3] == '#' && restContent[idx+4] != '#' {
+					continue
+				}
+				endIdx = idx
+			}
+		}
+
+		section := strings.TrimSpace(restContent[:endIdx])
+		if section != "" {
+			return section
+		}
+	}
+
+	return ""
 }
 
 // ExtractTitle 从内容中提取网页标题

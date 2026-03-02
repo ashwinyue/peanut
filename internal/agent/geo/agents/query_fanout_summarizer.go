@@ -9,13 +9,14 @@ import (
 )
 
 // NewQueryFanoutSummarizerAgent 5. 查询发散总结 Agent
-func NewQueryFanoutSummarizerAgent(llmModel model.ToolCallingChatModel) adk.Agent {
+func NewQueryFanoutSummarizerAgent(llmModel model.ToolCallingChatModel) (adk.Agent, error) {
 	ctx := context.Background()
 
 	a, err := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
 		Name:        "query_fanout_summarizer",
 		Description: "总结查询发散的关键主题",
 		Model:       llmModel,
+		OutputKey:   "QuerySummary",
 		Instruction: `你是内容总结专家。你的目标是从相关查询中提炼关键主题和用户关注点。
 
 前一个 agent 已经完成了查询发散研究：
@@ -35,10 +36,9 @@ func NewQueryFanoutSummarizerAgent(llmModel model.ToolCallingChatModel) adk.Agen
 2. 主题二
 ...`,
 	})
-
 	if err != nil {
-		panic(fmt.Sprintf("创建 query_fanout_summarizer agent 失败: %v", err))
+		return nil, fmt.Errorf("创建 query_fanout_summarizer agent 失败: %w", err)
 	}
 
-	return a
+	return a, nil
 }

@@ -9,19 +9,20 @@ import (
 )
 
 // NewMainQueryExtractorAgent 3. 主查询提取 Agent
-func NewMainQueryExtractorAgent(llmModel model.ToolCallingChatModel) adk.Agent {
+func NewMainQueryExtractorAgent(llmModel model.ToolCallingChatModel) (adk.Agent, error) {
 	ctx := context.Background()
 
 	a, err := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
 		Name:        "main_query_extractor",
 		Description: "从相关查询中提取核心搜索词",
 		Model:       llmModel,
+		OutputKey:   "MainQuery",
 		Instruction: `你是查询分析专家。你的目标是识别用户最核心的搜索意图。
 
-前一个 agent 已经完成了查询发散研究：
-{QueryFanout}  // ← 占位符，会被前一个 agent 的输出替换
+**任务说明**：
+请查看对话历史中的上下文信息，特别是 query_fanout_researcher 输出的相关查询列表。
 
-请基于这些相关查询：
+请基于这些信息：
 1. 分析这些查询的共同主题
 2. 提取最核心的主查询词（1-3个）
 3. 识别搜索关键词
@@ -32,10 +33,9 @@ func NewMainQueryExtractorAgent(llmModel model.ToolCallingChatModel) adk.Agent {
 关键词: [关键词列表]
 意图: [信息查询/交易/导航等]`,
 	})
-
 	if err != nil {
-		panic(fmt.Sprintf("创建 main_query_extractor agent 失败: %v", err))
+		return nil, fmt.Errorf("创建 main_query_extractor agent 失败: %w", err)
 	}
 
-	return a
+	return a, nil
 }

@@ -1,48 +1,64 @@
 version: '3.8'
 
-# 开发环境配置 - 仅启动数据库和 Redis
+# Docker Compose 配置 - SQLite（无需额外数据库和缓存）
 # 使用方式:
-#   docker-compose up -d          # 启动开发环境
-#   docker-compose -f docker-compose.prod.yaml up -d  # 启动生产环境
+#   docker-compose up -d          # 启动服务
+#   docker-compose logs -f        # 查看日志
+#   docker-compose down           # 停止服务
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: peanut-postgres-dev
+  # ============ 后端服务 ============
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: peanut-backend
+    restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: peanut
-    ports:
-      - "5432:5432"
+      # 服务配置
+      SERVER_PORT: 8080
+      GIN_MODE: release
+      # 豆包 API Key（需要配置）
+      ARK_API_KEY: ${ARK_API_KEY:-your-api-key}
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      # SQLite 数据库持久化
+      - peanut-data:/app/data
+    ports:
+      - "8080:8080"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     networks:
       - peanut-network
 
-  redis:
-    image: redis:7-alpine
-    container_name: peanut-redis-dev
+  # ============ 前端服务（可选） ============
+  frontend:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+    container_name: peanut-frontend
+    restart: always
+    depends_on:
+      backend:
+        condition: service_healthy
     ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
+      - "80:80"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - peanut-network
 
 volumes:
-  postgres-data:
-  redis-data:
+  # SQLite 数据库文件存储
+  peanut-data:
 
 networks:
   peanut-network:

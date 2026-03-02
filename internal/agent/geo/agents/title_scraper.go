@@ -12,18 +12,18 @@ import (
 )
 
 // NewTitleScraperAgent 1. 标题爬取 Agent
-func NewTitleScraperAgent(scraper tools.WebScraper) adk.Agent {
+func NewTitleScraperAgent(scraper tools.WebScraper) (adk.Agent, error) {
 	return NewTitleScraperAgentWithModel(scraper, nil)
 }
 
 // NewTitleScraperAgentWithModel 1. 标题爬取 Agent（带模型）
-func NewTitleScraperAgentWithModel(scraper tools.WebScraper, llmModel model.ToolCallingChatModel) adk.Agent {
+func NewTitleScraperAgentWithModel(scraper tools.WebScraper, llmModel model.ToolCallingChatModel) (adk.Agent, error) {
 	ctx := context.Background()
 
 	// 创建爬取工具
 	scraperTool, err := NewScraperToolAdapter(scraper)
 	if err != nil {
-		panic(fmt.Sprintf("创建爬取工具失败: %v", err))
+		return nil, fmt.Errorf("创建爬取工具失败: %w", err)
 	}
 
 	a, err := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
@@ -38,16 +38,16 @@ func NewTitleScraperAgentWithModel(scraper tools.WebScraper, llmModel model.Tool
 
 请以结构化的格式返回结果。`,
 		Model: llmModel,
+		OutputKey:   "Title",
 		ToolsConfig: adk.ToolsConfig{
 			ToolsNodeConfig: compose.ToolsNodeConfig{
 				Tools: []tool.BaseTool{scraperTool},
 			},
 		},
 	})
-
 	if err != nil {
-		panic(fmt.Sprintf("创建 title_scraper agent 失败: %v", err))
+		return nil, fmt.Errorf("创建 title_scraper agent 失败: %w", err)
 	}
 
-	return a
+	return a, nil
 }

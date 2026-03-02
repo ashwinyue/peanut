@@ -4,18 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Requirements
 
-- Go 1.24.0+
-- PostgreSQL 14+
-- Redis 6+
+- Go 1.25.0+
+- SQLite 3+ (默认数据库)
+- Node.js 18+ (前端开发，可选)
 
 ## Environment Setup
 
 ```bash
 cp .env.example .env    # 复制环境变量模板
-# 编辑 .env 配置数据库和 Redis 连接信息
+# 编辑 .env 配置数据库和 LLM 连接信息
 ```
 
 环境变量优先级高于 `configs/config.yaml`（Viper AutomaticEnv）
+
+**关键环境变量：**
+- `ARK_API_KEY` - 豆包 LLM API Key（GEO 分析功能必需）
+- `ARK_BASE_URL` - 豆包 API 地址
+- `ARK_MODEL` - 使用的模型名称
 
 ## Build & Development Commands
 
@@ -38,14 +43,15 @@ make test-coverage      # 生成覆盖率报告
 make lint               # golangci-lint 检查
 make fmt                # 格式化代码（gofmt + goimports）
 
-# Database
-make migrate-up         # 执行迁移
-make migrate-down       # 回滚迁移
+# Swagger API 文档
+make swagger            # 生成 Swagger 文档到 api/v1/docs/
 
 # Docker
-docker-compose up -d    # 启动 PostgreSQL + Redis + App
 make docker-build       # 构建 Docker 镜像
 make docker-run         # 运行 Docker 容器
+make docker-up          # docker-compose up -d (启动所有服务)
+make docker-down        # docker-compose down (停止所有服务)
+make docker-logs        # 查看容器日志
 ```
 
 ## Architecture Overview
@@ -66,24 +72,49 @@ internal/model/             # 数据模型，含 GORM tag 和请求/响应 DTO
 
 **API 路由结构**：
 - `GET /health` - 健康检查
+- `GET /swagger/*any` - Swagger API 文档
 - `GET /api/v1/users` - 用户列表
 - `POST /api/v1/users` - 创建用户
 - `GET /api/v1/users/:id` - 获取用户
 - `PUT /api/v1/users/:id` - 更新用户
 - `DELETE /api/v1/users/:id` - 删除用户
+- `POST /api/v1/geo/analyze` - GEO 内容分析
+- `GET /api/v1/geo/analyze/:id` - 获取分析结果
 
 **internal/pkg/ 目录**：
-- `database/` - PostgreSQL 连接封装
-- `cache/` - Redis 连接封装
+- `database/` - SQLite 连接封装
 - `response/` - 统一响应工具
+
+**internal/agent/ 目录**：
+- `geo/` - GEO 分析 Agent，集成豆包 LLM 进行内容优化
 
 **关键技术栈**：
 - Web 框架：Gin
-- ORM：GORM（PostgreSQL）
-- 缓存：go-redis
+- ORM：GORM（SQLite / PostgreSQL 兼容）
 - 配置：Viper（YAML）
 - 日志：Zap
-- 密码：bcrypt
+- AI/LLM：豆包（火山引擎 ARK API）
+- API 文档：Swagger (swag)
+
+## Web Frontend (web/)
+
+React 前端项目，用于 GEO 分析结果展示：
+
+```bash
+cd web
+npm install             # 安装依赖
+npm run dev             # 开发服务器 (http://localhost:5173)
+npm run build           # 生产构建
+npm run lint            # ESLint 检查
+```
+
+**技术栈**：
+- React 19 + TypeScript
+- Vite 构建工具
+- TailwindCSS + shadcn/ui 组件
+- TanStack Query (React Query)
+- Zustand 状态管理
+- React Hook Form + Zod 表单验证
 
 ## Code Conventions
 
@@ -93,7 +124,7 @@ internal/model/             # 数据模型，含 GORM tag 和请求/响应 DTO
 2. 在 `internal/repository/` 实现数据访问
 3. 在 `internal/service/` 实现业务逻辑
 4. 在 `internal/handler/` 实现 HTTP 处理器
-5. 在 `cmd/server/main.go` 注册依赖
+5. 在 `cmd/server/main.go` 注册依赖和路由
 
 ### 统一响应格式
 
@@ -132,3 +163,9 @@ var (
 环境变量可覆盖配置（Viper AutomaticEnv）
 
 启动时指定配置：`./peanut -config /path/to/config.yaml`
+
+## Database
+
+默认使用 SQLite（`peanut.db`），无需额外配置。
+
+如需切换到 PostgreSQL，修改 `configs/config.yaml` 中的数据库连接配置。

@@ -60,11 +60,14 @@ type OptimizationReport struct {
 	URL                     string                   `json:"url"`
 	Title                   string                   `json:"title"`
 	MainQuery               string                   `json:"main_query"`
-	QueryFanoutSummary      string                   `json:"query_fanout_summary"`
-	AIOverviewContent       string                   `json:"ai_overview_content"`
+	QueryFanout             string                   `json:"query_fanout"`              // 查询发散结果
+	QueryFanoutSummary      string                   `json:"query_fanout_summary"`      // 查询发散总结
+	AIOverview              string                   `json:"ai_overview"`               // AI 摘要内容
 	ComparisonTable         []ComparisonItem         `json:"comparison_table"`
 	ContentGaps             []string                 `json:"content_gaps"`
 	OptimizationSuggestions []OptimizationSuggestion `json:"optimization_suggestions"`
+	OptimizationReport      string                   `json:"optimization_report"`       // 优化报告内容
+	OptimizedArticle        string                   `json:"optimized_article"`         // 优化后的完整文章
 	OverallScore            int                      `json:"overall_score"`
 	Timestamp               time.Time                `json:"timestamp"`
 }

@@ -46,7 +46,7 @@ func NewArkClient() (*ArkClient, error) {
 
 	modelName := os.Getenv("ARK_MODEL")
 	if modelName == "" {
-		modelName = "ep-20241105164803-lqmjr"
+		modelName = "doubao-seed-2-0-pro-260215"
 	}
 
 	return &ArkClient{
