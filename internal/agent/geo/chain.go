@@ -245,11 +245,12 @@ func Execute(ctx context.Context, agent adk.Agent, url string, platform string) 
 			if agentName == "" {
 				agentNames := []string{
 					"title_scraper",              // 步骤 1
-					"query_fanout_researcher",    // 步骤 2（合并了总结）
+					"query_fanout_researcher",    // 步骤 2
 					"main_query_extractor",       // 步骤 3
 					"ai_overview_retriever",      // 步骤 4
-					"ai_content_optimizer",       // 步骤 5
-					"content_rewriter",           // 步骤 6
+					"query_fanout_summarizer",    // 步骤 5
+					"ai_content_optimizer",       // 步骤 6
+					"content_rewriter",           // 步骤 7
 				}
 				if stepCount <= len(agentNames) {
 					agentName = agentNames[stepCount-1]
@@ -344,11 +345,12 @@ func ExecuteWithStreaming(ctx context.Context, agent adk.Agent, url string, plat
 			if agentName == "" {
 				agentNames := []string{
 					"title_scraper",              // 步骤 1
-					"query_fanout_researcher",    // 步骤 2（合并了总结）
+					"query_fanout_researcher",    // 步骤 2
 					"main_query_extractor",       // 步骤 3
 					"ai_overview_retriever",      // 步骤 4
-					"ai_content_optimizer",       // 步骤 5
-					"content_rewriter",           // 步骤 6
+					"query_fanout_summarizer",    // 步骤 5
+					"ai_content_optimizer",       // 步骤 6
+					"content_rewriter",           // 步骤 7
 				}
 				if stepCount <= len(agentNames) {
 					agentName = agentNames[stepCount-1]
@@ -358,9 +360,10 @@ func ExecuteWithStreaming(ctx context.Context, agent adk.Agent, url string, plat
 			// 生成友好的消息
 			stepMessages := []string{
 				"✅ 爬取网页标题完成",
-				"✅ 搜索并总结相关查询完成",
+				"✅ 搜索相关查询完成",
 				"✅ 提取主查询完成",
 				"✅ 获取 AI 摘要完成",
+				"✅ 总结查询发散完成",
 				"✅ 生成优化报告完成",
 				"✅ 生成优化后文章完成",
 			}
@@ -370,6 +373,8 @@ func ExecuteWithStreaming(ctx context.Context, agent adk.Agent, url string, plat
 			} else {
 				message = fmt.Sprintf("✅ 步骤 %d 完成", stepCount)
 			}
+
+			fmt.Printf("📊 [DEBUG] Step %d/%d - Agent: %s - Message: %s\n", stepCount, 7, agentName, message)
 
 			if callback != nil {
 				callback(stepCount, agentName, message)
