@@ -12,10 +12,13 @@ import { PLATFORM_NAMES } from '@/lib/types'
 
 const formSchema = z.object({
   url: z.string().url('请输入有效的 URL'),
-  platform: z.string().default('doubao'),
+  platform: z.string(),
 })
 
-type FormData = z.infer<typeof formSchema>
+type FormData = {
+  url: string
+  platform: string
+}
 
 interface URLInputFormProps {
   onSubmit: (url: string, platform: string) => void
@@ -32,7 +35,6 @@ export function URLInputForm({ onSubmit, isLoading }: URLInputFormProps) {
     handleSubmit,
     formState: { errors },
     setValue,
-    watch,
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {

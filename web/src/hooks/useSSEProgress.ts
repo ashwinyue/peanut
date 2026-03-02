@@ -88,7 +88,7 @@ export function useSSEProgress(
       }
     })
 
-    eventSource.onerror = (err) => {
+    eventSource.onerror = () => {
       const errorMsg = 'SSE 连接错误'
       setError(errorMsg)
       setIsConnected(false)

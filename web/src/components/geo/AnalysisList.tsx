@@ -1,8 +1,9 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Eye, Trash2, ExternalLink, Clock, Search, BarChart3, ArrowRight } from 'lucide-react'
+import { Eye, Trash2, ExternalLink, Clock, Search, BarChart3, ArrowRight, Layers } from 'lucide-react'
 import type { GEOAnalysisResponse, AnalysisStatus } from '@/lib/types'
+import { PLATFORM_NAMES, PLATFORM_COLORS } from '@/lib/types'
 
 interface AnalysisListProps {
   list: GEOAnalysisResponse[]
@@ -141,11 +142,30 @@ export function AnalysisList({ list, isLoading, onView, onDelete }: AnalysisList
                       {status.label}
                     </Badge>
 
-                    {hasScore && (
-                      <Badge variant="outline" className="text-xs gap-1">
-                        <BarChart3 className="h-3 w-3" />
-                        评分: {item.overall_score}
+                    {/* 平台标签 */}
+                    {item.platform && (
+                      <Badge
+                        variant="outline"
+                        className={`text-xs gap-1 border-white/10 bg-gradient-to-r ${PLATFORM_COLORS[item.platform]} bg-clip-text text-transparent`}
+                      >
+                        <Layers className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">{PLATFORM_NAMES[item.platform]}</span>
                       </Badge>
+                    )}
+
+                    {hasScore && (
+                      <>
+                        <Badge variant="outline" className="text-xs gap-1">
+                          <BarChart3 className="h-3 w-3" />
+                          原始: {item.overall_score}
+                        </Badge>
+                        {item.optimized_score > 0 && (
+                          <Badge variant="outline" className="text-xs gap-1 border-emerald-500/20 text-emerald-400">
+                            <ArrowRight className="h-3 w-3" />
+                            优化后: {item.optimized_score}
+                          </Badge>
+                        )}
+                      </>
                     )}
 
                     <span className="text-xs text-muted-foreground flex items-center gap-1">

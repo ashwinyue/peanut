@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { TrendingUp, TrendingDown, Minus, CheckCircle, AlertCircle, Target, Lightbulb } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, CheckCircle, Target, Lightbulb } from 'lucide-react'
 import type { ValidationResult, PlatformType } from '@/lib/types'
 import { PLATFORM_NAMES } from '@/lib/types'
 
@@ -117,7 +116,6 @@ export function ValidationResultCard({ validationResult, platform }: ValidationR
 // 评分细分
 function ScoreBreakdown({ score, isOptimized = false }: { score: { authority: number; timeliness: number; structure: number; engagement: number; originality: number }; isOptimized?: boolean }) {
   const colorClass = isOptimized ? 'text-emerald-400' : 'text-foreground/60'
-  const bgClass = isOptimized ? 'bg-emerald-500/10' : 'bg-white/5'
 
   return (
     <div className="space-y-1.5 text-xs">

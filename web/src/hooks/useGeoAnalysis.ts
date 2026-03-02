@@ -7,7 +7,7 @@ interface UseGeoAnalysisResult {
   analysisList: GEOAnalysisResponse[]
   isLoading: boolean
   error: string | null
-  createAnalysis: (url: string) => Promise<GEOAnalysisResponse | null>
+  createAnalysis: (url: string, platform?: string) => Promise<GEOAnalysisResponse | null>
   getAnalysis: (id: number) => Promise<void>
   fetchList: (params?: { page?: number; page_size?: number; status?: string }) => Promise<void>
   deleteAnalysis: (id: number) => Promise<boolean>
@@ -21,12 +21,12 @@ export function useGeoAnalysis(): UseGeoAnalysisResult {
   const [error, setError] = useState<string | null>(null)
 
   // 创建分析任务
-  const createAnalysis = useCallback(async (url: string): Promise<GEOAnalysisResponse | null> => {
+  const createAnalysis = useCallback(async (url: string, platform?: string): Promise<GEOAnalysisResponse | null> => {
     setIsLoading(true)
     setError(null)
 
     try {
-      const response = await geoAnalysisApi.create(url)
+      const response = await geoAnalysisApi.create(url, platform)
       const analysis = response.data.data as GEOAnalysisResponse
       setCurrentAnalysis(analysis)
       return analysis
