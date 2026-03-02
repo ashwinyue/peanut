@@ -39,3 +39,15 @@ logs/
 # Temp files
 tmp/
 temp/
+
+server
+mykey.md
+
+# Project specific
+.reports/
+output/
+aaa/
+
+# Build artifacts
+bin/
+dist/

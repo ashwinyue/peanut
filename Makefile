@@ -88,6 +88,37 @@ docker-run:
 	@echo "Running Docker container..."
 	docker run -p 8080:8080 $(APP_NAME):latest
 
+# Docker Compose - 开发环境（仅数据库和 Redis）
+docker-dev-up:
+	@echo "Starting development environment (PostgreSQL + Redis)..."
+	docker-compose up -d
+
+docker-dev-down:
+	@echo "Stopping development environment..."
+	docker-compose down
+
+docker-dev-logs:
+	docker-compose logs -f
+
+# Docker Compose - 生产环境（前后端 + 数据库 + Redis）
+docker-prod-build:
+	@echo "Building production images..."
+	docker-compose -f docker-compose.prod.yaml build
+
+docker-prod-up:
+	@echo "Starting production environment..."
+	docker-compose -f docker-compose.prod.yaml up -d
+
+docker-prod-down:
+	@echo "Stopping production environment..."
+	docker-compose -f docker-compose.prod.yaml down
+
+docker-prod-logs:
+	docker-compose -f docker-compose.prod.yaml logs -f
+
+docker-prod-ps:
+	docker-compose -f docker-compose.prod.yaml ps
+
 # 帮助
 help:
 	@echo "Available targets:"
@@ -103,5 +134,13 @@ help:
 	@echo "  clean          - 清理构建文件"
 	@echo "  migrate-up     - 运行数据库迁移"
 	@echo "  migrate-down   - 回滚数据库迁移"
-	@echo "  docker-build   - 构建 Docker 镜像"
-	@echo "  docker-run     - 运行 Docker 容器"
+	@echo "  docker-build     - 构建 Docker 镜像"
+	@echo "  docker-run       - 运行 Docker 容器"
+	@echo "  docker-dev-up    - 启动开发环境 (PostgreSQL + Redis)"
+	@echo "  docker-dev-down  - 停止开发环境"
+	@echo "  docker-dev-logs  - 查看开发环境日志"
+	@echo "  docker-prod-build - 构建生产环境镜像"
+	@echo "  docker-prod-up   - 启动生产环境 (全栈)"
+	@echo "  docker-prod-down - 停止生产环境"
+	@echo "  docker-prod-logs - 查看生产环境日志"
+	@echo "  docker-prod-ps   - 查看生产环境容器状态"

@@ -1,0 +1,108 @@
+version: '3.8'
+
+# 生产环境配置 - 启动前后端、数据库和 Redis
+# 使用方式: docker-compose -f docker-compose.prod.yaml up -d
+
+services:
+  # ============ 基础设施 ============
+  postgres:
+    image: postgres:16-alpine
+    container_name: peanut-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-peanut}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - peanut-network
+    # 生产环境不暴露端口到宿主机，仅内部网络访问
+    # expose:
+    #   - "5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: peanut-redis
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - peanut-network
+    # 生产环境不暴露端口到宿主机，仅内部网络访问
+    # expose:
+    #   - "6379"
+
+  # ============ 应用服务 ============
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: peanut-backend
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # 数据库配置
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DB_NAME: ${POSTGRES_DB:-peanut}
+      # Redis 配置
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      # 服务配置
+      SERVER_PORT: 8080
+      GIN_MODE: release
+    networks:
+      - peanut-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://backend:8080}
+    container_name: peanut-frontend
+    restart: always
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    networks:
+      - peanut-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres-data:
+  redis-data:
+
+networks:
+  peanut-network:
+    driver: bridge

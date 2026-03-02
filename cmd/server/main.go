@@ -33,9 +33,11 @@ import (
 	_ "github.com/solariswu/peanut/api/v1/docs"
 	"go.uber.org/zap"
 
+	"github.com/solariswu/peanut/internal/agent/geo"
 	"github.com/solariswu/peanut/internal/config"
 	"github.com/solariswu/peanut/internal/handler"
 	"github.com/solariswu/peanut/internal/middleware"
+	"github.com/solariswu/peanut/internal/model"
 	"github.com/solariswu/peanut/internal/pkg/cache"
 	"github.com/solariswu/peanut/internal/pkg/database"
 	"github.com/solariswu/peanut/internal/repository"
@@ -77,6 +79,13 @@ func main() {
 	defer db.Close()
 	logger.Info("数据库连接成功")
 
+	// 执行数据库迁移
+	if err := db.DB().AutoMigrate(&model.User{}, &model.GEOAnalysis{}); err != nil {
+		logger.Warn("数据库迁移失败", zap.Error(err))
+	} else {
+		logger.Info("数据库迁移成功")
+	}
+
 	// 连接 Redis
 	rdb, err := cache.NewRedis(&cfg.Redis)
 	if err != nil {
@@ -89,9 +98,33 @@ func main() {
 	userRepo := repository.NewUserRepository(db.DB())
 	userSvc := service.NewUserService(userRepo)
 
+	// 初始化 GEO 服务
+	geoService, err := geo.NewService()
+	if err != nil {
+		logger.Warn("创建 GEO 服务失败", zap.Error(err))
+		// 不退出，GEO 服务可选
+	} else {
+		logger.Info("GEO 服务初始化成功")
+	}
+
+	// 初始化 GEO 分析服务（数据库版本）
+	var geoAnalysisHandler *handler.GEOAnalysisHandler
+	if geoService != nil {
+		geoAnalysisRepo := repository.NewGEOAnalysisRepository(db.DB())
+		geoAnalysisSvc := service.NewGEOAnalysisService(geoAnalysisRepo, geoService)
+		geoAnalysisHandler = handler.NewGEOAnalysisHandler(geoAnalysisSvc)
+		logger.Info("GEO 分析服务初始化成功")
+	}
+
 	// 初始化处理器
 	userHandler := handler.NewUserHandler(userSvc)
 	healthHandler := handler.NewHealthHandler()
+
+	// 初始化 GEO handler（如果服务可用）
+	var geoHandler *handler.GEOHandler
+	if geoService != nil {
+		geoHandler = handler.NewGEOHandler(geoService)
+	}
 
 	// 设置 Gin 模式
 	gin.SetMode(cfg.Server.Mode)
@@ -113,6 +146,18 @@ func main() {
 	// 注册 API 路由
 	api := router.Group("/api/v1")
 	userHandler.RegisterRoutes(api)
+
+	// 注册 GEO 路由
+	if geoHandler != nil {
+		geoHandler.RegisterRoutes(api)
+		logger.Info("GEO 路由已注册")
+	}
+
+	// 注册 GEO 分析路由
+	if geoAnalysisHandler != nil {
+		geoAnalysisHandler.RegisterRoutes(api)
+		logger.Info("GEO 分析路由已注册")
+	}
 
 	// 启动服务器
 	srv := &http.Server{
