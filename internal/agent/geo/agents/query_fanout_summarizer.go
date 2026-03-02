@@ -20,7 +20,7 @@ func NewQueryFanoutSummarizerAgent(llmModel model.ToolCallingChatModel) (adk.Age
 		Instruction: `你是内容总结专家。你的目标是从相关查询中提炼关键主题和用户关注点。
 
 前一个 agent 已经完成了查询发散研究：
-{QueryFanout}  // ← 占位符，会被前一个 agent 的输出替换
+[QueryFanout]  // ← 会被前一个 agent 的输出替换
 
 请基于这些相关查询：
 1. 分析这些查询背后的用户意图

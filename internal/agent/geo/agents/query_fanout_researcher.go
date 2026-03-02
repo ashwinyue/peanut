@@ -32,7 +32,7 @@ func NewQueryFanoutResearcherAgentWithModel(searcher tools.Searcher, llmModel mo
 		Instruction: `你是搜索研究专家。你的目标是发现与主题相关的所有潜在搜索查询。
 
 前一个 agent 已经爬取了网页标题：
-{Title}  // ← 占位符，会被前一个 agent 的输出替换
+[Title]  // ← 会被前一个 agent 的输出替换
 
 请基于这个标题：
 1. 使用 search_queries 工具进行搜索
