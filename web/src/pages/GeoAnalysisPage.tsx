@@ -138,7 +138,7 @@ export function GeoAnalysisPage() {
 
       {/* 创建分析 */}
       {viewMode === 'create' && (
-        <Card className="relative overflow-hidden glass-card">
+        <Card className="relative glass-card">
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/5 to-cyan-500/5 rounded-full blur-3xl" />
 
           <CardHeader className="relative">

@@ -27,6 +27,12 @@ export function useSSEProgress(
   const [error, setError] = useState<string | null>(null)
   const eventSourceRef = useRef<EventSource | null>(null)
 
+  // 使用 ref 保存回调函数，避免依赖变化触发重新连接
+  const callbacksRef = useRef({ onProgress, onComplete, onError })
+  useEffect(() => {
+    callbacksRef.current = { onProgress, onComplete, onError }
+  }, [onProgress, onComplete, onError])
+
   useEffect(() => {
     if (!analysisId) {
       return
@@ -37,6 +43,11 @@ export function useSSEProgress(
       eventSourceRef.current.close()
       eventSourceRef.current = null
     }
+
+    // 重置状态
+    setProgress(null)
+    setIsConnected(false)
+    setError(null)
 
     // 创建 SSE 连接
     const url = `${getApiBaseUrl()}/geo/analysis/${analysisId}/progress`
@@ -54,8 +65,8 @@ export function useSSEProgress(
       try {
         const data = JSON.parse(event.data)
         console.log('SSE connected:', data)
-      } catch (err) {
-        console.error('Failed to parse connected event:', err)
+      } catch {
+        console.error('Failed to parse connected event')
       }
     })
 
@@ -66,25 +77,25 @@ export function useSSEProgress(
         setProgress(data)
 
         // 调用回调
-        if (onProgress) {
-          onProgress(data)
+        if (callbacksRef.current.onProgress) {
+          callbacksRef.current.onProgress(data)
         }
 
         // 检查是否完成
         if (data.status === 'completed') {
-          if (onComplete) {
-            onComplete(data)
+          if (callbacksRef.current.onComplete) {
+            callbacksRef.current.onComplete(data)
           }
           // 关闭连接
           eventSource.close()
         } else if (data.status === 'failed') {
-          if (onError) {
-            onError(data.message || '分析失败')
+          if (callbacksRef.current.onError) {
+            callbacksRef.current.onError(data.message || '分析失败')
           }
           eventSource.close()
         }
-      } catch (err) {
-        console.error('Failed to parse progress event:', err)
+      } catch {
+        console.error('Failed to parse progress event')
       }
     })
 
@@ -92,8 +103,8 @@ export function useSSEProgress(
       const errorMsg = 'SSE 连接错误'
       setError(errorMsg)
       setIsConnected(false)
-      if (onError) {
-        onError(errorMsg)
+      if (callbacksRef.current.onError) {
+        callbacksRef.current.onError(errorMsg)
       }
     }
 
@@ -105,7 +116,7 @@ export function useSSEProgress(
       }
       setIsConnected(false)
     }
-  }, [analysisId, onProgress, onComplete, onError])
+  }, [analysisId]) // 只依赖 analysisId，避免回调函数变化导致重建
 
   return {
     progress,

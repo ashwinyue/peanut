@@ -115,7 +115,7 @@ export function URLInputForm({ onSubmit, isLoading }: URLInputFormProps) {
             </div>
 
             {/* 平台选择器 */}
-            <div className="relative">
+            <div className="relative z-50">
               <button
                 type="button"
                 onClick={() => setShowPlatformMenu(!showPlatformMenu)}
@@ -129,7 +129,7 @@ export function URLInputForm({ onSubmit, isLoading }: URLInputFormProps) {
 
               {/* 平台下拉菜单 */}
               {showPlatformMenu && (
-                <div className="absolute top-full left-0 mt-2 w-56 rounded-xl bg-card border border-white/10 shadow-xl z-[100] overflow-hidden">
+                <div className="absolute top-full left-0 mt-2 w-56 rounded-xl bg-card border border-white/10 shadow-2xl z-[9999]">
                   <div className="p-2 space-y-1">
                     {platforms.map((platform) => (
                       <button
