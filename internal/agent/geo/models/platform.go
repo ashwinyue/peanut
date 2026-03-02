@@ -4,7 +4,7 @@ package models
 type PlatformType string
 
 const (
-	// PlatformDoubao 豆包元宝
+	// PlatformDoubao 豆包
 	PlatformDoubao PlatformType = "doubao"
 	// PlatformWeChat 微信公众号/搜一搜
 	PlatformWeChat PlatformType = "wechat"
@@ -83,7 +83,7 @@ var PlatformWeights = map[PlatformType]PlatformWeight{
 
 // PlatformNames 平台显示名称
 var PlatformNames = map[PlatformType]string{
-	PlatformDoubao:      "豆包元宝",
+	PlatformDoubao:      "豆包",
 	PlatformWeChat:      "微信公众号",
 	PlatformZhihu:       "知乎",
 	PlatformXiaohongshu: "小红书",
@@ -117,7 +117,7 @@ func IsValidPlatform(platform PlatformType) bool {
 // AllPlatforms 获取所有支持的平台
 func AllPlatforms() []PlatformConfig {
 	return []PlatformConfig{
-		{Type: PlatformDoubao, Name: "豆包元宝", Description: "字节跳动旗下 AI 搜索", Weight: PlatformWeights[PlatformDoubao]},
+		{Type: PlatformDoubao, Name: "豆包", Description: "字节跳动旗下 AI 搜索", Weight: PlatformWeights[PlatformDoubao]},
 		{Type: PlatformWeChat, Name: "微信公众号", Description: "微信生态内容优化", Weight: PlatformWeights[PlatformWeChat]},
 		{Type: PlatformZhihu, Name: "知乎", Description: "专业知识问答平台", Weight: PlatformWeights[PlatformZhihu]},
 		{Type: PlatformXiaohongshu, Name: "小红书", Description: "生活方式种草平台", Weight: PlatformWeights[PlatformXiaohongshu]},

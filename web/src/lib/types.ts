@@ -147,7 +147,7 @@ export interface OptimizationSuggestion {
 
 // 平台显示名称映射
 export const PLATFORM_NAMES: Record<PlatformType, string> = {
-  doubao: '豆包元宝',
+  doubao: '豆包',
   wechat: '微信公众号',
   zhihu: '知乎',
   xiaohongshu: '小红书',

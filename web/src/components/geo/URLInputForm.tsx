@@ -10,6 +10,16 @@ import { geoAnalysisApi } from '@/lib/api'
 import type { PlatformConfig, PlatformType } from '@/lib/types'
 import { PLATFORM_NAMES } from '@/lib/types'
 
+// 默认平台列表（API 失败时使用）
+const DEFAULT_PLATFORMS: PlatformConfig[] = [
+  { type: 'doubao', name: '豆包', description: '字节跳动旗下 AI 搜索', weight: { authority: 40, timeliness: 25, structure: 20, engagement: 10, originality: 5 } },
+  { type: 'wechat', name: '微信公众号', description: '微信生态内容优化', weight: { authority: 25, timeliness: 20, structure: 15, engagement: 30, originality: 10 } },
+  { type: 'zhihu', name: '知乎', description: '专业知识问答平台', weight: { authority: 35, timeliness: 15, structure: 25, engagement: 20, originality: 5 } },
+  { type: 'xiaohongshu', name: '小红书', description: '生活方式种草平台', weight: { authority: 10, timeliness: 20, structure: 20, engagement: 40, originality: 10 } },
+  { type: 'wenxin', name: '百度文心一言', description: '百度 AI 搜索', weight: { authority: 40, timeliness: 20, structure: 20, engagement: 10, originality: 10 } },
+  { type: 'yuanbao', name: '腾讯元宝', description: '腾讯 AI 助手', weight: { authority: 35, timeliness: 25, structure: 20, engagement: 10, originality: 10 } },
+]
+
 const formSchema = z.object({
   url: z.string().url('请输入有效的 URL'),
   platform: z.string(),
@@ -47,11 +57,16 @@ export function URLInputForm({ onSubmit, isLoading }: URLInputFormProps) {
   useEffect(() => {
     geoAnalysisApi.getPlatforms()
       .then(response => {
-        if (response.data.data) {
+        if (response.data.data && response.data.data.length > 0) {
           setPlatforms(response.data.data)
+        } else {
+          setPlatforms(DEFAULT_PLATFORMS)
         }
       })
-      .catch(console.error)
+      .catch((err) => {
+        console.error('Failed to load platforms:', err)
+        setPlatforms(DEFAULT_PLATFORMS)
+      })
   }, [])
 
   const onFormSubmit = (data: FormData) => {
@@ -114,7 +129,7 @@ export function URLInputForm({ onSubmit, isLoading }: URLInputFormProps) {
 
               {/* 平台下拉菜单 */}
               {showPlatformMenu && (
-                <div className="absolute top-full left-0 mt-2 w-56 rounded-xl bg-card border border-white/10 shadow-xl z-50 overflow-hidden">
+                <div className="absolute top-full left-0 mt-2 w-56 rounded-xl bg-card border border-white/10 shadow-xl z-[100] overflow-hidden">
                   <div className="p-2 space-y-1">
                     {platforms.map((platform) => (
                       <button
