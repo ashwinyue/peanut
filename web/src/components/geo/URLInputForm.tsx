@@ -130,7 +130,7 @@ export function URLInputForm({ onSubmit, isLoading }: URLInputFormProps) {
               {/* 平台下拉菜单 */}
               {showPlatformMenu && (
                 <div className="absolute top-full left-0 mt-2 w-56 rounded-xl bg-card border border-white/10 shadow-2xl z-[9999]">
-                  <div className="p-2 space-y-1">
+                  <div className="p-2 space-y-1 max-h-64 overflow-y-auto">
                     {platforms.map((platform) => (
                       <button
                         key={platform.type}
