@@ -113,7 +113,7 @@ export function ValidationResultCard({ validationResult, platform }: ValidationR
   )
 }
 
-// 评分细分
+// 评分细分 - AI 搜索引擎（互动性对 AI 搜索无影响，不显示）
 function ScoreBreakdown({ score, isOptimized = false }: { score: { authority: number; timeliness: number; structure: number; engagement: number; originality: number }; isOptimized?: boolean }) {
   const colorClass = isOptimized ? 'text-emerald-400' : 'text-foreground/60'
 
@@ -130,10 +130,6 @@ function ScoreBreakdown({ score, isOptimized = false }: { score: { authority: nu
       <div className={`flex justify-between ${colorClass}`}>
         <span>结构化</span>
         <span className="font-mono">{Math.round(score.structure)}</span>
-      </div>
-      <div className={`flex justify-between ${colorClass}`}>
-        <span>互动性</span>
-        <span className="font-mono">{Math.round(score.engagement)}</span>
       </div>
       <div className={`flex justify-between ${colorClass}`}>
         <span>原创度</span>

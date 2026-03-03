@@ -96,7 +96,7 @@ func main() {
 	userRepo := repository.NewUserRepository(db.DB())
 	userSvc := service.NewUserService(userRepo)
 
-	// 初始化 GEO 服务（默认使用豆包元宝平台）
+	// 初始化 GEO 服务（使用 Google AI Overview）
 	geoService, err := geo.NewDefaultService()
 	if err != nil {
 		logger.Warn("创建 GEO 服务失败", zap.Error(err))

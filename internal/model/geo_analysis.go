@@ -12,7 +12,7 @@ type GEOAnalysis struct {
 	URL           string  `json:"url" gorm:"type:varchar(500);not null;index"`
 	Title         string  `json:"title" gorm:"type:varchar(500)"`
 	MainQuery     string  `json:"main_query" gorm:"type:varchar(200)"`
-	Platform      string  `json:"platform" gorm:"type:varchar(20);default:'doubao'"` // 目标平台
+	Platform      string  `json:"platform" gorm:"type:varchar(20);default:'google'"` // 目标平台：google
 	OverallScore  int     `json:"overall_score" gorm:"type:int;default:0"`
 	OptimizedScore int    `json:"optimized_score" gorm:"type:int;default:0"` // 优化后评分
 	Status        string  `json:"status" gorm:"type:varchar(20);index"` // pending, processing, completed, failed
@@ -53,7 +53,7 @@ func (g *GEOAnalysis) BeforeCreate(tx *gorm.DB) error {
 // GEOAnalysisCreateRequest 创建请求
 type GEOAnalysisCreateRequest struct {
 	URL      string `json:"url" binding:"required"`
-	Platform string `json:"platform"` // 目标平台：doubao/wechat/zhihu/xiaohongshu/wenxin/yuanbao，默认为 doubao
+	Platform string `json:"platform"` // 目标平台：google
 }
 
 // GEOAnalysisListRequest 列表查询请求

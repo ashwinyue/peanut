@@ -4,9 +4,10 @@ import "time"
 
 // ScrapedTitle 爬取的网页标题
 type ScrapedTitle struct {
-	Title string `json:"title"`
-	H1    string `json:"h1"`
-	URL   string `json:"url"`
+	Title   string `json:"title"`
+	H1      string `json:"h1"`
+	URL     string `json:"url"`
+	Content string `json:"content,omitempty"` // 完整网页内容（Markdown格式）
 }
 
 // QueryFanout 查询发散结果

@@ -16,8 +16,8 @@ export interface PageData<T = unknown> {
 // 分析状态
 export type AnalysisStatus = 'pending' | 'processing' | 'completed' | 'failed'
 
-// 平台类型
-export type PlatformType = 'doubao' | 'wechat' | 'zhihu' | 'xiaohongshu' | 'wenxin' | 'yuanbao'
+// 平台类型 - AI 搜索引擎
+export type PlatformType = 'google'
 
 // 平台配置
 export interface PlatformConfig {
@@ -145,22 +145,12 @@ export interface OptimizationSuggestion {
   suggestion: string
 }
 
-// 平台显示名称映射
+// 平台显示名称映射 - AI 搜索引擎
 export const PLATFORM_NAMES: Record<PlatformType, string> = {
-  doubao: '豆包',
-  wechat: '微信公众号',
-  zhihu: '知乎',
-  xiaohongshu: '小红书',
-  wenxin: '百度文心一言',
-  yuanbao: '腾讯元宝',
+  google: 'Google AI Overview',
 }
 
-// 平台颜色映射
+// 平台颜色映射 - AI 搜索引擎
 export const PLATFORM_COLORS: Record<PlatformType, string> = {
-  doubao: 'from-blue-500 to-cyan-500',
-  wechat: 'from-emerald-500 to-green-500',
-  zhihu: 'from-blue-600 to-indigo-500',
-  xiaohongshu: 'from-rose-500 to-pink-500',
-  wenxin: 'from-purple-500 to-violet-500',
-  yuanbao: 'from-cyan-500 to-teal-500',
+  google: 'from-blue-500 to-cyan-500',
 }

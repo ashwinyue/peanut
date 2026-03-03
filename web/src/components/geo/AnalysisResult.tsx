@@ -50,10 +50,11 @@ const statusConfig: Record<AnalysisStatus, { label: string; icon: React.ReactNod
 // 步骤名称映射
 const stepNames: Record<string, { name: string; icon: typeof Search; description: string }> = {
   'title_scraper': { name: '爬取网页标题', icon: Search, description: '获取页面基础信息' },
-  'query_fanout_researcher': { name: '搜索并总结查询', icon: Search, description: '扩展相关搜索词并总结' },
+  'query_researcher': { name: '搜索查询发散', icon: Search, description: '扩展相关搜索词' },
   'main_query_extractor': { name: '提取主查询', icon: Lightbulb, description: '识别核心关键词' },
-  'ai_overview_retriever': { name: '获取 AI 摘要', icon: Sparkles, description: '抓取搜索引擎 AI 概述' },
-  'ai_content_optimizer': { name: '生成优化报告', icon: Lightbulb, description: '分析优化机会' },
+  'ai_overview_retriever': { name: '获取 AI 摘要', icon: Sparkles, description: '抓取 Google AI Overview' },
+  'query_summarizer': { name: '总结查询发散', icon: FileText, description: '总结相关搜索词' },
+  'content_optimizer': { name: '生成优化报告', icon: Lightbulb, description: '对比分析生成报告' },
   'content_rewriter': { name: '生成优化文章', icon: Edit3, description: '重写优化内容' },
 }
 
@@ -144,17 +145,25 @@ export function AnalysisResult({ analysis, isLoading, onRefresh }: AnalysisResul
                   <CardTitle className="text-lg">{status.label}</CardTitle>
                   <CardDescription>正在分析您的网页内容</CardDescription>
                 </div>
-                {isConnected && (
+                {isConnected ? (
                   <Badge variant="outline" className="ml-2 text-xs bg-emerald-500/10 border-emerald-500/30 text-emerald-400">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse" />
                     实时更新
                   </Badge>
+                ) : (
+                  <Badge variant="outline" className="ml-2 text-xs bg-amber-500/10 border-amber-500/30 text-amber-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400 mr-1.5" />
+                    实时断开
+                  </Badge>
                 )}
               </div>
-              <Button variant="outline" size="sm" onClick={onRefresh} disabled={isLoading}>
-                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                刷新状态
-              </Button>
+              {/* 只在 SSE 未连接时显示刷新按钮 */}
+              {!isConnected && (
+                <Button variant="outline" size="sm" onClick={onRefresh} disabled={isLoading}>
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                  刷新状态
+                </Button>
+              )}
             </div>
           </CardHeader>
 
@@ -278,10 +287,6 @@ export function AnalysisResult({ analysis, isLoading, onRefresh }: AnalysisResul
                 </div>
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={onRefresh} disabled={isLoading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              刷新
-            </Button>
           </div>
         </CardHeader>
 

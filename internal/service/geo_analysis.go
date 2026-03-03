@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/solariswu/peanut/internal/agent/geo"
+	"github.com/solariswu/peanut/internal/agent/geo/flow"
 	"github.com/solariswu/peanut/internal/model"
 	"github.com/solariswu/peanut/internal/pkg/progress"
 	"github.com/solariswu/peanut/internal/repository"
@@ -15,13 +15,13 @@ import (
 // GEOAnalysisService GEO 分析服务
 type GEOAnalysisService struct {
 	repo        *repository.GEOAnalysisRepository
-	agent       geo.AgentService
+	agent       flow.AgentService
 	progressMgr *progress.Manager
 	totalSteps  int
 }
 
 // NewGEOAnalysisService 创建服务
-func NewGEOAnalysisService(repo *repository.GEOAnalysisRepository, agent geo.AgentService, progressMgr *progress.Manager) *GEOAnalysisService {
+func NewGEOAnalysisService(repo *repository.GEOAnalysisRepository, agent flow.AgentService, progressMgr *progress.Manager) *GEOAnalysisService {
 	return &GEOAnalysisService{
 		repo:        repo,
 		agent:       agent,
@@ -40,7 +40,7 @@ func (s *GEOAnalysisService) Create(ctx context.Context, req *model.GEOAnalysisC
 	// 验证并设置默认平台
 	platform := req.Platform
 	if platform == "" {
-		platform = "doubao"
+		platform = "google"
 	}
 
 	analysis := &model.GEOAnalysis{
@@ -73,7 +73,7 @@ func (s *GEOAnalysisService) executeAnalysis(ctx context.Context, analysisID int
 	}
 
 	// 执行 GEO 分析（传入平台参数）
-	report, err := s.agent.ExecuteWithStreaming(ctx, url, platform, func(step int, agentName string, message string) {
+	report, err := s.agent.AnalyzeWithProgress(ctx, url, platform, func(step int, total int, agentName string, message string) {
 		// 进度回调 - 通过进度管理器广播
 		if s.progressMgr != nil {
 			s.progressMgr.Update(analysisID, step, s.totalSteps, agentName, message)

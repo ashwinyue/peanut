@@ -77,7 +77,7 @@ export function GeoAnalysisPage() {
               </div>
             </div>
             <p className="text-muted-foreground max-w-md pl-1">
-              利用 AI 技术分析网页内容在豆包、微信、知乎等平台的 GEO 优化潜力，获取专业的优化建议和重写方案
+              利用 AI 技术分析网页内容在 Google AI Overview 中的 GEO 优化潜力，获取专业的优化建议和重写方案
             </p>
           </div>
 

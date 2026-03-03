@@ -10,14 +10,10 @@ import { geoAnalysisApi } from '@/lib/api'
 import type { PlatformConfig, PlatformType } from '@/lib/types'
 import { PLATFORM_NAMES } from '@/lib/types'
 
-// 默认平台列表（API 失败时使用）
+// 默认平台列表（API 失败时使用）- Google AI Overview
+// 注：AI 搜索引擎不关注互动性(engagement)，权重为 0
 const DEFAULT_PLATFORMS: PlatformConfig[] = [
-  { type: 'doubao', name: '豆包', description: '字节跳动旗下 AI 搜索', weight: { authority: 40, timeliness: 25, structure: 20, engagement: 10, originality: 5 } },
-  { type: 'wechat', name: '微信公众号', description: '微信生态内容优化', weight: { authority: 25, timeliness: 20, structure: 15, engagement: 30, originality: 10 } },
-  { type: 'zhihu', name: '知乎', description: '专业知识问答平台', weight: { authority: 35, timeliness: 15, structure: 25, engagement: 20, originality: 5 } },
-  { type: 'xiaohongshu', name: '小红书', description: '生活方式种草平台', weight: { authority: 10, timeliness: 20, structure: 20, engagement: 40, originality: 10 } },
-  { type: 'wenxin', name: '百度文心一言', description: '百度 AI 搜索', weight: { authority: 40, timeliness: 20, structure: 20, engagement: 10, originality: 10 } },
-  { type: 'yuanbao', name: '腾讯元宝', description: '腾讯 AI 助手', weight: { authority: 35, timeliness: 25, structure: 20, engagement: 10, originality: 10 } },
+  { type: 'google', name: 'Google AI Overview', description: 'Google 搜索 AI 摘要', weight: { authority: 45, timeliness: 30, structure: 15, engagement: 0, originality: 10 } },
 ]
 
 const formSchema = z.object({
@@ -38,7 +34,7 @@ interface URLInputFormProps {
 export function URLInputForm({ onSubmit, isLoading }: URLInputFormProps) {
   const [platforms, setPlatforms] = useState<PlatformConfig[]>([])
   const [showPlatformMenu, setShowPlatformMenu] = useState(false)
-  const [selectedPlatform, setSelectedPlatform] = useState<PlatformType>('doubao')
+  const [selectedPlatform, setSelectedPlatform] = useState<PlatformType>('google')
 
   const {
     register,
@@ -49,7 +45,7 @@ export function URLInputForm({ onSubmit, isLoading }: URLInputFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       url: '',
-      platform: 'doubao',
+      platform: 'google',
     },
   })
 
@@ -224,12 +220,7 @@ export function URLInputForm({ onSubmit, isLoading }: URLInputFormProps) {
 // 获取平台颜色
 function getPlatformColor(type: PlatformType): string {
   const colors: Record<PlatformType, string> = {
-    doubao: 'from-blue-500 to-cyan-500',
-    wechat: 'from-emerald-500 to-green-500',
-    zhihu: 'from-blue-600 to-indigo-500',
-    xiaohongshu: 'from-rose-500 to-pink-500',
-    wenxin: 'from-purple-500 to-violet-500',
-    yuanbao: 'from-cyan-500 to-teal-500',
+    google: 'from-blue-500 to-cyan-500',
   }
   return colors[type] || 'from-gray-500 to-gray-400'
 }

@@ -2,170 +2,207 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Requirements
+## Project Overview
 
-- Go 1.25.0+
-- SQLite 3+ (默认数据库)
-- Node.js 18+ (前端开发，可选)
-
-## Environment Setup
-
-```bash
-cp .env.example .env    # 复制环境变量模板
-# 编辑 .env 配置数据库和 LLM 连接信息
-```
-
-环境变量优先级高于 `configs/config.yaml`（Viper AutomaticEnv）
-
-**关键环境变量：**
-- `ARK_API_KEY` - 豆包 LLM API Key（GEO 分析功能必需）
-- `ARK_BASE_URL` - 豆包 API 地址
-- `ARK_MODEL` - 使用的模型名称
+Peanut is a Go-based web application with a React frontend that provides GEO (Generative Engine Optimization) analysis. It uses the Eino framework for AI agent workflows to analyze and optimize web content for AI search engines.
 
 ## Build & Development Commands
 
+### Backend (Go)
+
 ```bash
-# Build
-make build              # 构建到 bin/peanut
+# Build the application
+make build              # Builds to bin/peanut
 
-# Dependencies
-make tidy               # 整理 go.mod 依赖
+# Run the application
+make run                # Runs ./cmd/server/main.go
+make dev                # Hot reload mode (requires air)
 
-# Run
-make run                # 直接运行
-make dev                # 热重载模式（需安装 air）
+# Testing
+make test               # Run all tests with race detection and coverage
+make test-coverage      # Generate coverage report (coverage.html)
 
-# Test
-make test               # 运行测试（含 race 检测）
-make test-coverage      # 生成覆盖率报告
+# Code quality
+make lint               # Run golangci-lint
+make fmt                # Format code with gofmt and goimports
+make tidy               # Tidy go.mod dependencies
 
-# Lint
-make lint               # golangci-lint 检查
-make fmt                # 格式化代码（gofmt + goimports）
+# Generate Swagger docs
+make swagger            # Generates API docs to api/v1/docs/
 
-# Swagger API 文档
-make swagger            # 生成 Swagger 文档到 api/v1/docs/
-
-# Docker
-make docker-build       # 构建 Docker 镜像
-make docker-run         # 运行 Docker 容器
-make docker-up          # docker-compose up -d (启动所有服务)
-make docker-down        # docker-compose down (停止所有服务)
-make docker-logs        # 查看容器日志
+# Cleanup
+make clean              # Remove build files, coverage reports, and database
 ```
 
-## Architecture Overview
-
-```
-cmd/server/main.go          # 应用入口，依赖注入
-    ↓
-internal/handler/           # HTTP 处理器层，参数校验，调用 service
-    ↓
-internal/service/           # 业务逻辑层，事务编排
-    ↓
-internal/repository/        # 数据访问层，GORM 操作
-    ↓
-internal/model/             # 数据模型，含 GORM tag 和请求/响应 DTO
-```
-
-**依赖流向**：Handler → Service → Repository → Model（单向）
-
-**API 路由结构**：
-- `GET /health` - 健康检查
-- `GET /swagger/*any` - Swagger API 文档
-- `GET /api/v1/users` - 用户列表
-- `POST /api/v1/users` - 创建用户
-- `GET /api/v1/users/:id` - 获取用户
-- `PUT /api/v1/users/:id` - 更新用户
-- `DELETE /api/v1/users/:id` - 删除用户
-- `POST /api/v1/geo/analyze` - GEO 内容分析
-- `GET /api/v1/geo/analyze/:id` - 获取分析结果
-
-**internal/pkg/ 目录**：
-- `database/` - SQLite 连接封装
-- `response/` - 统一响应工具
-
-**internal/agent/ 目录**：
-- `geo/` - GEO 分析 Agent，集成豆包 LLM 进行内容优化
-
-**关键技术栈**：
-- Web 框架：Gin
-- ORM：GORM（SQLite / PostgreSQL 兼容）
-- 配置：Viper（YAML）
-- 日志：Zap
-- AI/LLM：豆包（火山引擎 ARK API）
-- API 文档：Swagger (swag)
-
-## Web Frontend (web/)
-
-React 前端项目，用于 GEO 分析结果展示：
+### Frontend (React + Vite)
 
 ```bash
 cd web
-npm install             # 安装依赖
-npm run dev             # 开发服务器 (http://localhost:5173)
-npm run build           # 生产构建
-npm run lint            # ESLint 检查
+
+# Development
+npm install             # Install dependencies
+npm run dev             # Start dev server (http://localhost:5173)
+
+# Build
+npm run build           # Production build
+npm run lint            # ESLint check
+npm run preview         # Preview production build
 ```
 
-**技术栈**：
-- React 19 + TypeScript
-- Vite 构建工具
-- TailwindCSS + shadcn/ui 组件
-- TanStack Query (React Query)
-- Zustand 状态管理
-- React Hook Form + Zod 表单验证
+### Running Single Tests
 
-## Code Conventions
+```bash
+# Run a specific test
+ go test -v ./internal/agent/geo/parser/... -run TestExtractJSON
 
-### 添加新功能模块
-
-1. 在 `internal/model/` 定义模型和 DTO
-2. 在 `internal/repository/` 实现数据访问
-3. 在 `internal/service/` 实现业务逻辑
-4. 在 `internal/handler/` 实现 HTTP 处理器
-5. 在 `cmd/server/main.go` 注册依赖和路由
-
-### 统一响应格式
-
-```go
-// 成功
-response.Success(c, data)
-response.SuccessPage(c, list, total, page, pageSize)
-
-// 错误
-response.BadRequest(c, "错误信息")
-response.NotFound(c, "资源不存在")
-response.ServerError(c, "服务器错误")
+# Run tests for a specific package
+ go test -v ./internal/agent/geo/...
 ```
 
-### GORM 模型规范
+### Docker Commands
 
-```go
-type User struct {
-    BaseModel  // 嵌入 ID, CreatedAt, UpdatedAt
-    Username string `json:"username" gorm:"type:varchar(32);uniqueIndex;not null"`
-}
+```bash
+make docker-build       # Build Docker image
+make docker-run         # Run Docker container
+make docker-up          # docker-compose up -d
+make docker-down        # docker-compose down
+make docker-logs        # View container logs
 ```
 
-### Service 错误定义
+## Architecture
 
-```go
-var (
-    ErrUserNotFound = errors.New("用户不存在")
-)
+### Backend Architecture
+
+The backend follows a layered architecture:
+
+```
+cmd/server/main.go          # Application entry point, dependency injection
+    ↓
+internal/handler/           # HTTP handlers (Gin), parameter validation
+    ↓
+internal/service/           # Business logic, transaction orchestration
+    ↓
+internal/repository/        # Data access layer (GORM)
+    ↓
+internal/model/             # Data models with GORM tags
 ```
 
-## Configuration
+**Dependency flow**: Handler → Service → Repository → Model (unidirectional)
 
-配置文件：`configs/config.yaml`
+### GEO Agent Flow Architecture
 
-环境变量可覆盖配置（Viper AutomaticEnv）
+The GEO analysis uses the Eino framework with a Graph-based flow:
 
-启动时指定配置：`./peanut -config /path/to/config.yaml`
+```
+internal/agent/geo/
+├── service.go              # Entry point, implements AgentService interface
+├── flow/
+│   ├── builder.go          # Builds the Eino compose.Graph
+│   ├── state.go            # Flow state management
+│   └── agents/             # 7 agent implementations:
+│       ├── title_scraper.go          # Step 1: Scrape webpage
+│       ├── query_researcher.go       # Step 2: Search related queries
+│       ├── main_query_extractor.go   # Step 3: Extract main query
+│       ├── ai_overview_retriever.go  # Step 4: Get AI overview
+│       ├── query_summarizer.go       # Step 5: Summarize queries
+│       ├── content_optimizer.go      # Step 6: Generate optimization report
+│       └── content_rewriter.go       # Step 7: Rewrite content
+├── tools/
+│   └── brightdata.go       # Bright Data API integration (SERP + Web Unlocker)
+├── llm/
+│   └── ark.go              # Doubao/Ark LLM client
+└── models/
+    ├── flow.go             # FlowState struct for inter-agent communication
+    └── response.go         # OptimizationReport output struct
+```
+
+The flow uses `compose.Graph` with state passing between agents via `FlowState`.
+
+### Frontend Architecture
+
+```
+web/src/
+├── components/
+│   ├── geo/                # GEO-specific components
+│   │   ├── URLInputForm.tsx
+│   │   ├── AnalysisResult.tsx
+│   │   ├── AnalysisList.tsx
+│   │   ├── ScoreCard.tsx
+│   │   ├── SuggestionsCard.tsx
+│   │   └── ValidationResultCard.tsx
+│   ├── layout/             # Layout components
+│   └── ui/                 # shadcn/ui components
+├── pages/
+│   └── GeoAnalysisPage.tsx
+├── App.tsx
+└── main.tsx
+```
+
+**Tech stack**: React 19 + TypeScript + Vite + TailwindCSS + shadcn/ui + Zustand + TanStack Query
+
+## Environment Configuration
+
+### Required Environment Variables
+
+```bash
+# Bright Data (for SERP and web scraping)
+BRIGHT_DATA_API_KEY=your_api_key
+BRIGHT_DATA_ZONE=serp_api
+BRIGHT_DATA_WEB_UNLOCKER_ZONE=web_unlocker
+
+# Doubao LLM
+ARK_API_KEY=your_ark_api_key
+ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
+ARK_MODEL=your-model-name
+```
+
+### Optional Configuration
+
+Environment variables override `configs/config.yaml`:
+
+```bash
+SERVER_PORT=8080
+DATABASE_URL=postgresql://...  # Defaults to SQLite (peanut.db)
+GIN_MODE=debug  # or release
+LOG_LEVEL=debug
+```
+
+## Key API Endpoints
+
+- `GET /health` - Health check
+- `GET /swagger/*any` - Swagger API documentation
+- `POST /api/v1/geo/analysis` - Create GEO analysis task
+- `GET /api/v1/geo/analysis/:id` - Get analysis result
+- `GET /api/v1/geo/analysis/:id/progress` - SSE stream for progress updates
+- `GET /api/v1/geo/analysis/platforms` - List supported platforms
 
 ## Database
 
-默认使用 SQLite（`peanut.db`），无需额外配置。
+Default: SQLite (`peanut.db`)
 
-如需切换到 PostgreSQL，修改 `configs/config.yaml` 中的数据库连接配置。
+Models:
+- `User` - User management
+- `GEOAnalysis` - Analysis task storage with status tracking
+
+Auto-migration happens on startup in `cmd/server/main.go`.
+
+## Testing Notes
+
+- Tests use standard Go testing with `testing` package
+- Race detection enabled by default (`-race` flag)
+- Parser tests in `internal/agent/geo/parser/parser_test.go` show JSON extraction patterns
+
+## Dependencies
+
+**Key Go modules**:
+- `github.com/cloudwego/eino` - AI agent framework
+- `github.com/gin-gonic/gin` - Web framework
+- `gorm.io/gorm` + `gorm.io/driver/sqlite` - ORM
+- `github.com/swaggo/gin-swagger` - API documentation
+- `go.uber.org/zap` - Logging
+
+**Key npm packages**:
+- `@tanstack/react-query` - Data fetching
+- `zustand` - State management
+- `@radix-ui/*` - UI primitives
+- `react-hook-form` + `zod` - Form handling

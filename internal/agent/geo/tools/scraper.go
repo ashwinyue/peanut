@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,6 +10,8 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/cloudwego/eino/components/tool"
+	"github.com/cloudwego/eino/schema"
 	"github.com/solariswu/peanut/internal/agent/geo/models"
 )
 
@@ -102,4 +105,50 @@ func cleanText(text string) string {
 	// 替换连续的空白字符为单个空格
 	lines := strings.Fields(text)
 	return strings.Join(lines, " ")
+}
+
+// Info 返回工具信息 (实现 tool.InvokableTool 接口)
+func (s *HTTPScraper) Info(ctx context.Context) (*schema.ToolInfo, error) {
+	return &schema.ToolInfo{
+		Name: "scrape_webpage",
+		Desc: "爬取网页内容，提取标题和主要文本",
+		ParamsOneOf: schema.NewParamsOneOfByParams(map[string]*schema.ParameterInfo{
+			"url": {
+				Type: "string",
+				Desc: "要爬取的网页 URL",
+			},
+		}),
+	}, nil
+}
+
+// InvokableRun 执行工具 (实现 tool.InvokableTool 接口)
+func (s *HTTPScraper) InvokableRun(ctx context.Context, argumentsInJSON string, opts ...tool.Option) (string, error) {
+	var req struct {
+		URL string `json:"url"`
+	}
+	if err := json.Unmarshal([]byte(argumentsInJSON), &req); err != nil {
+		return "", fmt.Errorf("解析请求失败: %w", err)
+	}
+
+	result, err := s.Scrape(ctx, req.URL)
+	if err != nil {
+		return "", fmt.Errorf("爬取网页失败: %w", err)
+	}
+
+	resp := struct {
+		URL   string `json:"url"`
+		Title string `json:"title"`
+		H1    string `json:"h1"`
+	}{
+		URL:   result.URL,
+		Title: result.Title,
+		H1:    result.H1,
+	}
+
+	data, err := json.Marshal(resp)
+	if err != nil {
+		return "", fmt.Errorf("序列化响应失败: %w", err)
+	}
+
+	return string(data), nil
 }
