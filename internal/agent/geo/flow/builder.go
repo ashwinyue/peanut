@@ -65,40 +65,13 @@ func BuildGraph(ctx context.Context) (compose.Runnable[string, string], error) {
 	}
 
 	// 创建各 Agent 子图
-	titleScraperGraph, err := agents.NewTitleScraperAgent(ctx, scraper)
-	if err != nil {
-		return nil, err
-	}
-
-	queryResearcherGraph, err := agents.NewQueryResearcherAgent(ctx, searcher)
-	if err != nil {
-		return nil, err
-	}
-
-	mainQueryExtractorGraph, err := agents.NewMainQueryExtractorAgent(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	aiOverviewRetrieverGraph, err := agents.NewAIOverviewRetrieverAgent(ctx, serp)
-	if err != nil {
-		return nil, err
-	}
-
-	querySummarizerGraph, err := agents.NewQuerySummarizerAgent(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	contentOptimizerGraph, err := agents.NewContentOptimizerAgent(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	contentRewriterGraph, err := agents.NewContentRewriterAgent(ctx)
-	if err != nil {
-		return nil, err
-	}
+	titleScraperGraph := agents.NewTitleScraperAgent(ctx, scraper)
+	queryResearcherGraph := agents.NewQueryResearcherAgent(ctx, searcher)
+	mainQueryExtractorGraph := agents.NewMainQueryExtractorAgent(ctx)
+	aiOverviewRetrieverGraph := agents.NewAIOverviewRetrieverAgent(ctx, serp)
+	querySummarizerGraph := agents.NewQuerySummarizerAgent(ctx)
+	contentOptimizerGraph := agents.NewContentOptimizerAgent(ctx)
+	contentRewriterGraph := agents.NewContentRewriterAgent(ctx)
 
 	// 添加节点到 Graph
 	_ = g.AddGraphNode(AgentTitleScraper, titleScraperGraph, compose.WithNodeName(AgentTitleScraper))

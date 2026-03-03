@@ -95,12 +95,12 @@ func routerContentRewriter(ctx context.Context, input *schema.Message, state *mo
 }
 
 // NewContentRewriterAgent 创建 Content Rewriter Agent
-func NewContentRewriterAgent(ctx context.Context) (*compose.Graph[string, string], error) {
+func NewContentRewriterAgent(ctx context.Context) *compose.Graph[string, string] {
 	cag := compose.NewGraph[string, string]()
 
 	llmModel, err := llm.NewChatModel(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("创建 LLM 模型失败: %w", err)
+		panic(fmt.Sprintf("创建 LLM 模型失败: %v", err))
 	}
 
 	_ = cag.AddLambdaNode("load", compose.InvokableLambdaWithOption(func(ctx context.Context, input string, opts ...any) ([]*schema.Message, error) {
@@ -131,5 +131,5 @@ func NewContentRewriterAgent(ctx context.Context) (*compose.Graph[string, string
 	_ = cag.AddEdge("agent", "router")
 	_ = cag.AddEdge("router", compose.END)
 
-	return cag, nil
+	return cag
 }
