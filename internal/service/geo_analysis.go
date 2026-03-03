@@ -10,6 +10,7 @@ import (
 	"github.com/solariswu/peanut/internal/model"
 	"github.com/solariswu/peanut/internal/pkg/progress"
 	"github.com/solariswu/peanut/internal/repository"
+	"go.uber.org/zap"
 )
 
 // GEOAnalysisService GEO 分析服务
@@ -63,9 +64,14 @@ func (s *GEOAnalysisService) Create(ctx context.Context, req *model.GEOAnalysisC
 // executeAnalysis 执行分析
 func (s *GEOAnalysisService) executeAnalysis(ctx context.Context, analysisID int64, url string, platform string) {
 	// 更新状态为处理中
-	s.repo.UpdateFields(analysisID, map[string]interface{}{
+	if err := s.repo.UpdateFields(analysisID, map[string]any{
 		"status": "processing",
-	})
+	}); err != nil {
+		// 记录错误但不中断，继续尝试执行分析
+		zap.L().Error("更新分析状态为 processing 失败",
+			zap.Int64("analysis_id", analysisID),
+			zap.Error(err))
+	}
 
 	// 发布初始进度
 	if s.progressMgr != nil {
@@ -85,13 +91,17 @@ func (s *GEOAnalysisService) executeAnalysis(ctx context.Context, analysisID int
 		if s.progressMgr != nil {
 			s.progressMgr.Fail(analysisID, err.Error())
 		}
-		s.repo.MarkFailed(analysisID, err.Error())
+		if dbErr := s.repo.MarkFailed(analysisID, err.Error()); dbErr != nil {
+			zap.L().Error("标记分析失败状态失败",
+				zap.Int64("analysis_id", analysisID),
+				zap.Error(dbErr))
+		}
 		return
 	}
 
 	// 更新最终结果
 	now := time.Now()
-	updates := map[string]interface{}{
+	updates := map[string]any{
 		"title":         report.Title,
 		"main_query":    report.MainQuery,
 		"overall_score": report.OverallScore,
@@ -130,7 +140,18 @@ func (s *GEOAnalysisService) executeAnalysis(ctx context.Context, analysisID int
 	// 注意：验证结果在第8步生成，需要从 stepOutputs 中解析
 	// 这里暂时跳过，后续可以扩展报告模型来包含验证结果
 
-	s.repo.UpdateFields(analysisID, updates)
+	if err := s.repo.UpdateFields(analysisID, updates); err != nil {
+		zap.L().Error("更新分析结果失败",
+			zap.Int64("analysis_id", analysisID),
+			zap.Error(err))
+		// 尝试至少标记为失败状态
+		if dbErr := s.repo.MarkFailed(analysisID, "保存分析结果失败: "+err.Error()); dbErr != nil {
+			zap.L().Error("标记分析失败状态也失败",
+				zap.Int64("analysis_id", analysisID),
+				zap.Error(dbErr))
+		}
+		return
+	}
 
 	// 标记完成
 	if s.progressMgr != nil {

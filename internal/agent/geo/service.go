@@ -34,10 +34,7 @@ func NewService(platform string) (*Service, error) {
 
 	// 创建 GenLocalState 函数
 	genLocalState := func(ctx context.Context) *flow.State {
-		fmt.Println("[GEO] GenLocalState 被调用")
-		return &flow.State{
-			Goto: flow.AgentTitleScraper,
-		}
+		return flow.GenLocalState(ctx)
 	}
 
 	runnable, err := flow.BuildGraph[string, string, *flow.State](ctx, genLocalState)
@@ -73,27 +70,18 @@ func (s *Service) AnalyzeWithProgress(ctx context.Context, url, platform string,
 		progress(0, 7, "初始化", fmt.Sprintf("开始 %s GEO 分析", platform))
 	}
 
+	// 将进度回调放入上下文
+	ctx = flow.WithProgressCallback(ctx, progress)
+
 	// 用于存储最终状态
 	var finalState *flow.State
 
-	// 使用 Invoke 模式执行，通过 StateModifier 获取状态
+	// 使用 Invoke 模式执行
 	fmt.Println("[GEO] 调用 Invoke...")
 	result, err := s.runnable.Invoke(ctx, url,
 		compose.WithStateModifier(func(ctx context.Context, path compose.NodePath, state any) error {
 			fmt.Println("[GEO] StateModifier 被调用")
 			s := state.(*flow.State)
-			s.URL = url
-			s.PlatformType = platform
-			s.TotalSteps = 7 // 设置总步骤数
-			fmt.Printf("[GEO] State 初始化完成: URL=%s, Goto=%s\n", s.URL, s.Goto)
-
-			// 设置进度回调
-			if progress != nil {
-				s.OnProgress = func(step int, total int, agentName string, message string) {
-					progress(step, total, agentName, message)
-				}
-			}
-
 			// 保存状态引用（将在流程结束时包含完整数据）
 			finalState = s
 			return nil

@@ -3,8 +3,8 @@ package repository
 import (
 	"time"
 
-	"gorm.io/gorm"
 	"github.com/solariswu/peanut/internal/model"
+	"gorm.io/gorm"
 )
 
 // GEOAnalysisRepository GEO 分析仓储
@@ -38,7 +38,7 @@ func (r *GEOAnalysisRepository) Update(analysis *model.GEOAnalysis) error {
 }
 
 // UpdateFields 更新指定字段
-func (r *GEOAnalysisRepository) UpdateFields(id int64, fields map[string]interface{}) error {
+func (r *GEOAnalysisRepository) UpdateFields(id int64, fields map[string]any) error {
 	return r.db.Model(&model.GEOAnalysis{}).Where("id = ?", id).Updates(fields).Error
 }
 
@@ -102,9 +102,9 @@ func (r *GEOAnalysisRepository) MarkCompleted(id int64, score int) error {
 	return r.db.Model(&model.GEOAnalysis{}).
 		Where("id = ?", id).
 		Updates(map[string]interface{}{
-			"status":       "completed",
+			"status":        "completed",
 			"overall_score": score,
-			"completed_at": &now,
+			"completed_at":  &now,
 		}).Error
 }
 

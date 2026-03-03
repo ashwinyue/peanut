@@ -17,8 +17,8 @@ type SQLite struct {
 
 // NewSQLite 创建新的 GORM SQLite 连接
 func NewSQLite(dsn string) (*SQLite, error) {
-	// 打开数据库连接
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
+	// 打开数据库连接，启用外键约束和 WAL 模式
+	db, err := gorm.Open(sqlite.Open(dsn+"?_fk=1&_journal_mode=WAL"), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
