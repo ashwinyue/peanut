@@ -9,6 +9,7 @@ package models
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/cloudwego/eino/compose"
 )
@@ -16,6 +17,9 @@ import (
 func init() {
 	_ = compose.RegisterSerializableType[FlowState]("GEOFlowState")
 }
+
+// ProgressCallback 进度回调函数类型
+type ProgressCallback func(step int, total int, agentName string, message string)
 
 // FlowState GEO Flow 状态
 type FlowState struct {
@@ -50,12 +54,16 @@ type FlowState struct {
 	OptimizedArticle string `json:"optimized_article,omitempty"`
 
 	// 流程控制
-	Goto     string `json:"goto,omitempty"`
-	Step     int    `json:"step,omitempty"`
-	MaxSteps int    `json:"max_steps,omitempty"`
+	Goto       string `json:"goto,omitempty"`
+	Step       int    `json:"step,omitempty"`
+	MaxSteps   int    `json:"max_steps,omitempty"`
+	TotalSteps int    `json:"total_steps,omitempty"` // 总步骤数（用于进度计算）
 
 	// 错误处理
 	LastError string `json:"last_error,omitempty"`
+
+	// 进度回调（不序列化）
+	OnProgress ProgressCallback `json:"-"`
 }
 
 // SearchResult 搜索结果条目
@@ -83,7 +91,10 @@ func (s *FlowState) UnmarshalJSON(b []byte) error {
 
 // GenFlowState 生成 Flow State 的工厂函数
 func GenFlowState(ctx context.Context) *FlowState {
-	return &FlowState{}
+	fmt.Println("[GEO] GenFlowState 被调用")
+	return &FlowState{
+		Goto: "title_scraper", // 默认从 title_scraper 开始
+	}
 }
 
 // GEOCheckPoint GEO Flow 的全局状态存储点
@@ -100,6 +111,7 @@ func (gc *GEOCheckPoint) Get(ctx context.Context, checkPointID string) ([]byte, 
 
 // Set 设置 checkpoint 数据
 func (gc *GEOCheckPoint) Set(ctx context.Context, checkPointID string, checkPoint []byte) error {
+	fmt.Printf("[GEOCheckPoint] Set called: id=%s, len=%d\n", checkPointID, len(checkPoint))
 	gc.buf[checkPointID] = checkPoint
 	return nil
 }

@@ -18,15 +18,15 @@ import (
 	"github.com/cloudwego/eino/flow/agent/react"
 	"github.com/cloudwego/eino/schema"
 
-	"github.com/solariswu/peanut/internal/agent/geo/models"
 	"github.com/solariswu/peanut/internal/agent/geo/llm"
+	"github.com/solariswu/peanut/internal/agent/geo/models"
 )
 
 // QueryResearcherResult 研究结果
 type QueryResearcherResult struct {
-	OriginalQuery   string                `json:"original_query"`
-	RelatedQueries  []string              `json:"related_queries"`
-	SearchResults   []models.SearchResult   `json:"search_results"`
+	OriginalQuery  string                `json:"original_query"`
+	RelatedQueries []string              `json:"related_queries"`
+	SearchResults  []models.SearchResult `json:"search_results"`
 }
 
 // loadQueryResearcherPrompt 加载 prompt
@@ -73,6 +73,11 @@ func routerQueryResearcher(ctx context.Context, input *schema.Message, state *mo
 	state.QueryFanout = result.RelatedQueries
 	state.SearchResults = result.SearchResults
 	state.Step = 2
+
+	// 发送进度回调
+	if state.OnProgress != nil {
+		state.OnProgress(2, state.TotalSteps, "查询发散", "处理完成")
+	}
 
 	state.Goto = AgentMainQueryExtractor
 	return state.Goto, nil
@@ -123,8 +128,8 @@ func extractStringArray(content, field string) []string {
 }
 
 // NewQueryResearcherAgent 创建 Query Researcher Agent
-func NewQueryResearcherAgent(ctx context.Context, searchTool tool.InvokableTool) *compose.Graph[string, string] {
-	cag := compose.NewGraph[string, string]()
+func NewQueryResearcherAgent[I, O any](ctx context.Context, searchTool tool.InvokableTool) *compose.Graph[I, O] {
+	cag := compose.NewGraph[I, O]()
 
 	// 创建 LLM 模型
 	llmModel, err := llm.NewChatModel(ctx)

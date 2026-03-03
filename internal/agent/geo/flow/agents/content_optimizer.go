@@ -70,13 +70,18 @@ func routerContentOptimizer(ctx context.Context, input *schema.Message, state *m
 	}
 	state.Step = 6
 
+	// 发送进度回调
+	if state.OnProgress != nil {
+		state.OnProgress(6, state.TotalSteps, "内容优化", "处理完成")
+	}
+
 	state.Goto = AgentContentRewriter
 	return state.Goto, nil
 }
 
 // NewContentOptimizerAgent 创建 Content Optimizer Agent
-func NewContentOptimizerAgent(ctx context.Context) *compose.Graph[string, string] {
-	cag := compose.NewGraph[string, string]()
+func NewContentOptimizerAgent[I, O any](ctx context.Context) *compose.Graph[I, O] {
+	cag := compose.NewGraph[I, O]()
 
 	llmModel, err := llm.NewChatModel(ctx)
 	if err != nil {

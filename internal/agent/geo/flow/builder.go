@@ -18,20 +18,35 @@ import (
 )
 
 // agentHandOff 子图流转函数
+// 参考 deer-go: branch 函数的 input 类型是 Graph 的输出类型 (string)，不是 *State
+// 需要通过 compose.ProcessState 来访问 state
 func agentHandOff(ctx context.Context, input string) (next string, err error) {
-	var gotoAgent string
-	_ = compose.ProcessState[*State](ctx, func(_ context.Context, state *State) error {
-		gotoAgent = state.Goto
+	fmt.Printf("[agentHandOff] 被调用, input=%s\n", input)
+	err = compose.ProcessState[*State](ctx, func(_ context.Context, state *State) error {
+		if state.Goto == "" {
+			next = compose.END
+			fmt.Println("[agentHandOff] state.Goto 为空, 跳转到 END")
+		} else {
+			next = state.Goto
+			fmt.Printf("[agentHandOff] 从 state.Goto 获取下一步: %s\n", next)
+		}
 		return nil
 	})
-	if gotoAgent == "" {
-		gotoAgent = compose.END
+	if err != nil {
+		fmt.Printf("[agentHandOff] ProcessState 失败: %v\n", err)
 	}
-	return gotoAgent, nil
+	fmt.Printf("[agentHandOff] 返回 next=%s\n", next)
+	return next, err
 }
 
-// BuildGraph 构建 GEO Flow Graph
-func BuildGraph(ctx context.Context) (compose.Runnable[string, string], error) {
+// BuildGraph 构建 GEO Flow Graph（使用默认 CheckPointStore）
+// Deprecated: 使用 BuildGraphWithCheckpoint 代替
+func BuildGraph[I, O, S any](ctx context.Context, genLocalState func(ctx context.Context) S) (compose.Runnable[I, O], error) {
+	return BuildGraphWithCheckpoint[I, O, S](ctx, genLocalState, models.NewGEOCheckPoint(ctx))
+}
+
+// BuildGraphWithCheckpoint 构建 GEO Flow Graph（使用指定的 CheckPointStore）
+func BuildGraphWithCheckpoint[I, O, S any](ctx context.Context, genLocalState func(ctx context.Context) S, checkPointStore compose.CheckPointStore) (compose.Runnable[I, O], error) {
 	// 初始化工具
 	scraper, err := tools.NewBrightDataWebScraper()
 	if err != nil {
@@ -49,8 +64,8 @@ func BuildGraph(ctx context.Context) (compose.Runnable[string, string], error) {
 	}
 
 	// 创建 Graph
-	g := compose.NewGraph[string, string](
-		compose.WithGenLocalState(GenLocalState),
+	g := compose.NewGraph[I, O](
+		compose.WithGenLocalState(genLocalState),
 	)
 
 	// 定义所有可能的节点
@@ -66,13 +81,13 @@ func BuildGraph(ctx context.Context) (compose.Runnable[string, string], error) {
 	}
 
 	// 创建各 Agent 子图
-	titleScraperGraph := agents.NewTitleScraperAgent(ctx, scraper)
-	queryResearcherGraph := agents.NewQueryResearcherAgent(ctx, searcher)
-	mainQueryExtractorGraph := agents.NewMainQueryExtractorAgent(ctx)
-	aiOverviewRetrieverGraph := agents.NewAIOverviewRetrieverAgent(ctx, serp)
-	querySummarizerGraph := agents.NewQuerySummarizerAgent(ctx)
-	contentOptimizerGraph := agents.NewContentOptimizerAgent(ctx)
-	contentRewriterGraph := agents.NewContentRewriterAgent(ctx)
+	titleScraperGraph := agents.NewTitleScraperAgent[I, O](ctx, scraper)
+	queryResearcherGraph := agents.NewQueryResearcherAgent[I, O](ctx, searcher)
+	mainQueryExtractorGraph := agents.NewMainQueryExtractorAgent[I, O](ctx)
+	aiOverviewRetrieverGraph := agents.NewAIOverviewRetrieverAgent[I, O](ctx, serp)
+	querySummarizerGraph := agents.NewQuerySummarizerAgent[I, O](ctx)
+	contentOptimizerGraph := agents.NewContentOptimizerAgent[I, O](ctx)
+	contentRewriterGraph := agents.NewContentRewriterAgent[I, O](ctx)
 
 	// 添加节点到 Graph
 	_ = g.AddGraphNode(AgentTitleScraper, titleScraperGraph, compose.WithNodeName(AgentTitleScraper))
@@ -99,7 +114,7 @@ func BuildGraph(ctx context.Context) (compose.Runnable[string, string], error) {
 	runnable, err := g.Compile(ctx,
 		compose.WithGraphName("GEOFlow"),
 		compose.WithNodeTriggerMode(compose.AnyPredecessor),
-		compose.WithCheckPointStore(models.NewGEOCheckPoint(ctx)),
+		compose.WithCheckPointStore(checkPointStore),
 	)
 	if err != nil {
 		return nil, err

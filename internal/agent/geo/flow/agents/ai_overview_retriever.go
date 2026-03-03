@@ -18,8 +18,8 @@ import (
 	"github.com/cloudwego/eino/flow/agent/react"
 	"github.com/cloudwego/eino/schema"
 
-	"github.com/solariswu/peanut/internal/agent/geo/models"
 	"github.com/solariswu/peanut/internal/agent/geo/llm"
+	"github.com/solariswu/peanut/internal/agent/geo/models"
 )
 
 // AIOverviewResult AI 摘要结果
@@ -75,6 +75,11 @@ func routerAIOverviewRetriever(ctx context.Context, input *schema.Message, state
 	state.Sources = result.Sources
 	state.Step = 4
 
+	// 发送进度回调
+	if state.OnProgress != nil {
+		state.OnProgress(4, state.TotalSteps, "AI摘要获取", "处理完成")
+	}
+
 	state.Goto = AgentQuerySummarizer
 	return state.Goto, nil
 }
@@ -89,8 +94,8 @@ func parseAIOverviewResult(content string) *AIOverviewResult {
 }
 
 // NewAIOverviewRetrieverAgent 创建 AI Overview Retriever Agent
-func NewAIOverviewRetrieverAgent(ctx context.Context, overviewTool tool.InvokableTool) *compose.Graph[string, string] {
-	cag := compose.NewGraph[string, string]()
+func NewAIOverviewRetrieverAgent[I, O any](ctx context.Context, overviewTool tool.InvokableTool) *compose.Graph[I, O] {
+	cag := compose.NewGraph[I, O]()
 
 	llmModel, err := llm.NewChatModel(ctx)
 	if err != nil {

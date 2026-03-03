@@ -139,7 +139,20 @@ func (c *ArkClient) Generate(ctx context.Context, messages []*schema.Message) (*
 
 // Stream 流式生成
 func (c *ArkClient) Stream(ctx context.Context, messages []*schema.Message) (*schema.StreamReader[*schema.Message], error) {
-	return nil, fmt.Errorf("流式生成暂未实现")
+	// 调用 Generate 获取完整响应
+	msg, err := c.Generate(ctx, messages)
+	if err != nil {
+		return nil, err
+	}
+
+	// 创建流式 reader，将完整响应作为单个 chunk 发送
+	sr, sw := schema.Pipe[*schema.Message](1)
+	go func() {
+		sw.Send(msg, nil)
+		sw.Close()
+	}()
+
+	return sr, nil
 }
 
 // BindTools 绑定工具

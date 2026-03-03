@@ -14,8 +14,8 @@ import (
 	"github.com/cloudwego/eino/compose"
 	"github.com/cloudwego/eino/schema"
 
-	"github.com/solariswu/peanut/internal/agent/geo/models"
 	"github.com/solariswu/peanut/internal/agent/geo/llm"
+	"github.com/solariswu/peanut/internal/agent/geo/models"
 )
 
 // loadContentRewriterPrompt 加载 prompt
@@ -85,6 +85,11 @@ func routerContentRewriter(ctx context.Context, input *schema.Message, state *mo
 	state.OptimizedArticle = input.Content
 	state.Step = 7
 
+	// 发送进度回调
+	if state.OnProgress != nil {
+		state.OnProgress(7, state.TotalSteps, "文章重写", "处理完成")
+	}
+
 	// 更新报告
 	if state.Report != nil {
 		state.Report.OptimizedArticle = input.Content
@@ -95,8 +100,8 @@ func routerContentRewriter(ctx context.Context, input *schema.Message, state *mo
 }
 
 // NewContentRewriterAgent 创建 Content Rewriter Agent
-func NewContentRewriterAgent(ctx context.Context) *compose.Graph[string, string] {
-	cag := compose.NewGraph[string, string]()
+func NewContentRewriterAgent[I, O any](ctx context.Context) *compose.Graph[I, O] {
+	cag := compose.NewGraph[I, O]()
 
 	llmModel, err := llm.NewChatModel(ctx)
 	if err != nil {

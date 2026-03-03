@@ -16,17 +16,17 @@ import (
 	"github.com/cloudwego/eino/compose"
 	"github.com/cloudwego/eino/schema"
 
-	"github.com/solariswu/peanut/internal/agent/geo/models"
 	"github.com/solariswu/peanut/internal/agent/geo/llm"
+	"github.com/solariswu/peanut/internal/agent/geo/models"
 )
 
 // QuerySummarizerResult 查询总结结果
 type QuerySummarizerResult struct {
-	Summary      string   `json:"summary"`
-	KeyTopics    []string `json:"key_topics"`
-	UserIntents  []string `json:"user_intents"`
-	HotKeywords  []string `json:"hot_keywords"`
-	Insights     string   `json:"insights"`
+	Summary     string   `json:"summary"`
+	KeyTopics   []string `json:"key_topics"`
+	UserIntents []string `json:"user_intents"`
+	HotKeywords []string `json:"hot_keywords"`
+	Insights    string   `json:"insights"`
 }
 
 // loadQuerySummarizerPrompt 加载 prompt
@@ -71,6 +71,11 @@ func routerQuerySummarizer(ctx context.Context, input *schema.Message, state *mo
 	state.QuerySummary = result.Summary
 	state.Step = 5
 
+	// 发送进度回调
+	if state.OnProgress != nil {
+		state.OnProgress(5, state.TotalSteps, "查询总结", "处理完成")
+	}
+
 	state.Goto = AgentContentOptimizer
 	return state.Goto, nil
 }
@@ -85,8 +90,8 @@ func parseQuerySummarizerResult(content string) *QuerySummarizerResult {
 }
 
 // NewQuerySummarizerAgent 创建 Query Summarizer Agent
-func NewQuerySummarizerAgent(ctx context.Context) *compose.Graph[string, string] {
-	cag := compose.NewGraph[string, string]()
+func NewQuerySummarizerAgent[I, O any](ctx context.Context) *compose.Graph[I, O] {
+	cag := compose.NewGraph[I, O]()
 
 	llmModel, err := llm.NewChatModel(ctx)
 	if err != nil {

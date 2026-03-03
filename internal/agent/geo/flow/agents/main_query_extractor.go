@@ -16,8 +16,8 @@ import (
 	"github.com/cloudwego/eino/compose"
 	"github.com/cloudwego/eino/schema"
 
-	"github.com/solariswu/peanut/internal/agent/geo/models"
 	"github.com/solariswu/peanut/internal/agent/geo/llm"
+	"github.com/solariswu/peanut/internal/agent/geo/models"
 )
 
 // MainQueryResult 主查询结果
@@ -81,6 +81,11 @@ func routerMainQueryExtractor(ctx context.Context, input *schema.Message, state 
 	state.SearchIntent = result.SearchIntent
 	state.Step = 3
 
+	// 发送进度回调
+	if state.OnProgress != nil {
+		state.OnProgress(3, state.TotalSteps, "主查询提取", "处理完成")
+	}
+
 	state.Goto = AgentAIOverviewRetriever
 	return state.Goto, nil
 }
@@ -98,8 +103,8 @@ func parseMainQueryResult(content string) *MainQueryResult {
 }
 
 // NewMainQueryExtractorAgent 创建主查询提取 Agent
-func NewMainQueryExtractorAgent(ctx context.Context) *compose.Graph[string, string] {
-	cag := compose.NewGraph[string, string]()
+func NewMainQueryExtractorAgent[I, O any](ctx context.Context) *compose.Graph[I, O] {
+	cag := compose.NewGraph[I, O]()
 
 	llmModel, err := llm.NewChatModel(ctx)
 	if err != nil {

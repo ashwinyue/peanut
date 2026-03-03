@@ -8,6 +8,7 @@ package flow
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/solariswu/peanut/internal/agent/geo/models"
 )
@@ -20,5 +21,6 @@ type SearchResult = models.SearchResult
 
 // GenLocalState 生成 Local State 的工厂函数
 func GenLocalState(ctx context.Context) *State {
+	fmt.Println("[GEO] GenLocalState 被调用")
 	return models.GenFlowState(ctx)
 }
