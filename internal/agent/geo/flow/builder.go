@@ -13,6 +13,7 @@ import (
 	"github.com/cloudwego/eino/compose"
 
 	"github.com/solariswu/peanut/internal/agent/geo/flow/agents"
+	"github.com/solariswu/peanut/internal/agent/geo/models"
 	"github.com/solariswu/peanut/internal/agent/geo/tools"
 )
 
@@ -98,6 +99,7 @@ func BuildGraph(ctx context.Context) (compose.Runnable[string, string], error) {
 	runnable, err := g.Compile(ctx,
 		compose.WithGraphName("GEOFlow"),
 		compose.WithNodeTriggerMode(compose.AnyPredecessor),
+		compose.WithCheckPointStore(models.NewGEOCheckPoint(ctx)),
 	)
 	if err != nil {
 		return nil, err

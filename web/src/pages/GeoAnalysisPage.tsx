@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { URLInputForm } from '@/components/geo/URLInputForm'
 import { AnalysisResult } from '@/components/geo/AnalysisResult'
 import { AnalysisList } from '@/components/geo/AnalysisList'
+import { DeleteConfirmDialog } from '@/components/geo/DeleteConfirmDialog'
 import { useGeoAnalysis } from '@/hooks/useGeoAnalysis'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -9,6 +10,8 @@ import { AlertCircle, History, Plus, Sparkles, Globe, Zap, Layers } from 'lucide
 
 export function GeoAnalysisPage() {
   const [viewMode, setViewMode] = useState<'create' | 'list' | 'detail'>('create')
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null)
   const {
     currentAnalysis,
     analysisList,
@@ -44,9 +47,17 @@ export function GeoAnalysisPage() {
   }
 
   // 删除分析
-  const handleDelete = async (id: number) => {
-    if (confirm('确定要删除这条分析记录吗？')) {
-      await deleteAnalysis(id)
+  const handleDelete = (id: number) => {
+    setDeleteTargetId(id)
+    setDeleteDialogOpen(true)
+  }
+
+  // 确认删除
+  const handleConfirmDelete = async () => {
+    if (deleteTargetId !== null) {
+      await deleteAnalysis(deleteTargetId)
+      setDeleteDialogOpen(false)
+      setDeleteTargetId(null)
     }
   }
 
@@ -173,6 +184,18 @@ export function GeoAnalysisPage() {
           onRefresh={() => getAnalysis(currentAnalysis.id)}
         />
       )}
+
+      {/* 删除确认弹窗 */}
+      <DeleteConfirmDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false)
+          setDeleteTargetId(null)
+        }}
+        onConfirm={handleConfirmDelete}
+        title="删除分析记录"
+        description="此操作将永久删除该分析记录及其所有相关数据，包括优化建议和重写内容。删除后无法恢复，请谨慎操作。"
+      />
     </div>
   )
 }

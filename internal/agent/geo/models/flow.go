@@ -85,3 +85,28 @@ func (s *FlowState) UnmarshalJSON(b []byte) error {
 func GenFlowState(ctx context.Context) *FlowState {
 	return &FlowState{}
 }
+
+// GEOCheckPoint GEO Flow 的全局状态存储点
+// 实现 CheckPointStore 接口，用 checkPointID 进行索引
+type GEOCheckPoint struct {
+	buf map[string][]byte
+}
+
+// Get 获取 checkpoint 数据
+func (gc *GEOCheckPoint) Get(ctx context.Context, checkPointID string) ([]byte, bool, error) {
+	data, ok := gc.buf[checkPointID]
+	return data, ok, nil
+}
+
+// Set 设置 checkpoint 数据
+func (gc *GEOCheckPoint) Set(ctx context.Context, checkPointID string, checkPoint []byte) error {
+	gc.buf[checkPointID] = checkPoint
+	return nil
+}
+
+// NewGEOCheckPoint 创建一个全局状态存储点实例
+func NewGEOCheckPoint(ctx context.Context) compose.CheckPointStore {
+	return &GEOCheckPoint{
+		buf: make(map[string][]byte),
+	}
+}

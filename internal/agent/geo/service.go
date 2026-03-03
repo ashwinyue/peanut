@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/cloudwego/eino/compose"
 
@@ -48,6 +49,10 @@ func NewDefaultService() (*Service, error) {
 
 // Analyze 分析 URL（实现 flow.AgentService 接口）
 func (s *Service) Analyze(ctx context.Context, url, platform string) (*models.OptimizationReport, error) {
+	// 添加超时控制
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
 	// 执行 Graph，使用 StateModifier 初始化状态
 	_, err := s.runnable.Invoke(ctx, url,
 		compose.WithStateModifier(func(ctx context.Context, path compose.NodePath, state any) error {
